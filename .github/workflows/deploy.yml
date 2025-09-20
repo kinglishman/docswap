@@ -1,0 +1,305 @@
+name: 🚀 Deploy DocSwap to Hostinger
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        
+    - name: 📦 Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y poppler-utils tesseract-ocr
+        sudo apt-get install -y libjpeg-dev zlib1g-dev libtiff-dev libfreetype6-dev
+        
+    - name: 📦 Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black
+        
+    - name: 🔍 Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
+    - name: 🎨 Check code formatting with black
+      run: |
+        black --check --diff .
+        
+    - name: 🧪 Run tests
+      run: |
+        # Create test environment file
+        cp .env.example .env
+        
+        # Run tests with coverage
+        pytest --cov=. --cov-report=xml --cov-report=html
+        
+    - name: 📊 Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 🔒 Run security scan with bandit
+      run: |
+        pip install bandit[toml]
+        bandit -r . -f json -o bandit-report.json || true
+        bandit -r . -f txt
+        
+    - name: 🔍 Run safety check
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json || true
+        safety check
+        
+    - name: 📊 Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  build:
+    name: 🏗️ Build Application
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: 🔧 Validate production configuration
+      run: |
+        python validate_production.py --check-only
+        
+    - name: 📦 Create deployment package
+      run: |
+        # Create a clean deployment package
+        tar -czf docswap-${{ github.sha }}.tar.gz \
+          --exclude='.git' \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          --exclude='uploads' \
+          --exclude='output' \
+          --exclude='logs' \
+          --exclude='.env*' \
+          --exclude='test_*' \
+          --exclude='*.test' \
+          .
+          
+    - name: 📊 Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: docswap-build-${{ github.sha }}
+        path: docswap-${{ github.sha }}.tar.gz
+        retention-days: 30
+
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 📥 Download build artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: docswap-build-${{ github.sha }}
+        
+    - name: 🔑 Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+        
+    - name: 🚀 Deploy to staging server
+      run: |
+        # Deploy to staging environment
+        export VPS_IP="${{ secrets.STAGING_VPS_IP }}"
+        export VPS_USER="${{ secrets.STAGING_VPS_USER }}"
+        export DOMAIN="${{ secrets.STAGING_DOMAIN }}"
+        
+        # Run deployment script
+        ./deploy_hostinger_auto.sh deploy
+        
+    - name: 🏥 Health check
+      run: |
+        # Wait for deployment to complete
+        sleep 30
+        
+        # Check if staging is healthy
+        curl -f "https://${{ secrets.STAGING_DOMAIN }}/health" || exit 1
+        
+    - name: 📢 Notify deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      if: always()
+
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 📥 Download build artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: docswap-build-${{ github.sha }}
+        
+    - name: 🔑 Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        
+    - name: 🚀 Deploy to production server
+      run: |
+        # Deploy to production environment
+        export VPS_IP="${{ secrets.PRODUCTION_VPS_IP }}"
+        export VPS_USER="${{ secrets.PRODUCTION_VPS_USER }}"
+        export DOMAIN="${{ secrets.PRODUCTION_DOMAIN }}"
+        
+        # Run deployment script
+        ./deploy_hostinger_auto.sh deploy
+        
+    - name: 🏥 Health check
+      run: |
+        # Wait for deployment to complete
+        sleep 30
+        
+        # Comprehensive health check
+        curl -f "https://${{ secrets.PRODUCTION_DOMAIN }}/health" || exit 1
+        curl -f "https://${{ secrets.PRODUCTION_DOMAIN }}/api/config" || exit 1
+        
+    - name: 📊 Performance test
+      run: |
+        # Basic performance test
+        curl -w "@curl-format.txt" -o /dev/null -s "https://${{ secrets.PRODUCTION_DOMAIN }}/"
+        
+    - name: 🔄 Rollback on failure
+      if: failure()
+      run: |
+        export VPS_IP="${{ secrets.PRODUCTION_VPS_IP }}"
+        export VPS_USER="${{ secrets.PRODUCTION_VPS_USER }}"
+        export DOMAIN="${{ secrets.PRODUCTION_DOMAIN }}"
+        
+        ./deploy_hostinger_auto.sh rollback
+        
+    - name: 📢 Notify deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+      if: always()
+      
+    - name: 🏷️ Create release tag
+      if: success()
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag -a "v$(date +'%Y.%m.%d-%H%M')" -m "Production deployment $(date)"
+        git push origin --tags
+
+  monitor:
+    name: 📊 Post-deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: success()
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔍 Monitor application health
+      run: |
+        # Monitor for 5 minutes after deployment
+        for i in {1..10}; do
+          echo "Health check $i/10..."
+          if curl -f "https://${{ secrets.PRODUCTION_DOMAIN }}/health"; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed"
+            exit 1
+          fi
+          sleep 30
+        done
+        
+    - name: 📈 Performance monitoring
+      run: |
+        # Basic performance monitoring
+        echo "Checking response times..."
+        curl -w "Response time: %{time_total}s\n" -o /dev/null -s "https://${{ secrets.PRODUCTION_DOMAIN }}/"
+        
+    - name: 📊 Update monitoring dashboard
+      run: |
+        # Update external monitoring (if configured)
+        echo "Deployment completed successfully at $(date)"
