@@ -1,0 +1,1295 @@
+{% extends "base.html" %}
+
+{% block title %}Files Management - DocSwap Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="fas fa-folder-open"></i>
+            File Management
+        </h2>
+        <div class="card-actions">
+            <button class="btn btn-sm btn-success" onclick="uploadFile()">
+                <i class="fas fa-upload"></i>
+                Upload
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="refreshFiles()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-card">
+        <form id="filterForm" method="GET" class="filters-form">
+            <div class="filter-group">
+                <label for="search">Search Files</label>
+                <input type="text" id="search" name="search" placeholder="Search by filename..." 
+                       value="{{ request.args.get('search', '') }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="file_type">File Type</label>
+                <select id="file_type" name="file_type">
+                    <option value="">All Types</option>
+                    <option value="pdf" {{ 'selected' if request.args.get('file_type') == 'pdf' }}>PDF</option>
+                    <option value="docx" {{ 'selected' if request.args.get('file_type') == 'docx' }}>DOCX</option>
+                    <option value="txt" {{ 'selected' if request.args.get('file_type') == 'txt' }}>TXT</option>
+                    <option value="html" {{ 'selected' if request.args.get('file_type') == 'html' }}>HTML</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
+                    <option value="converted" {{ 'selected' if request.args.get('status') == 'converted' }}>Converted</option>
+                    <option value="expired" {{ 'selected' if request.args.get('status') == 'expired' }}>Expired</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="sort_by">Sort By</label>
+                <select id="sort_by" name="sort_by">
+                    <option value="modified" {{ 'selected' if request.args.get('sort_by') == 'modified' }}>Upload Time</option>
+                    <option value="filename" {{ 'selected' if request.args.get('sort_by') == 'filename' }}>Filename</option>
+                    <option value="file_size" {{ 'selected' if request.args.get('sort_by') == 'file_size' }}>File Size</option>
+                    <option value="session_id" {{ 'selected' if request.args.get('sort_by') == 'session_id' }}>Session ID</option>
+                </select>
+            </div>
+            
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Files Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-file"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_files }}</h3>
+                <p>Total Files</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ files | selectattr('status', 'equalto', 'converted') | list | length }}</h3>
+                <p>Converted</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ files | selectattr('status', 'equalto', 'active') | list | length }}</h3>
+                <p>Active</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    {% if files %}
+    <div class="bulk-actions">
+        <div class="bulk-select">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+            <label for="selectAll">Select All</label>
+        </div>
+        <div class="bulk-buttons">
+            <button class="btn btn-danger" onclick="deleteSelected()" disabled id="deleteBtn">
+                <i class="fas fa-trash"></i> Delete Selected
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Files Table -->
+    <div class="files-table-container">
+        {% if files %}
+        <table class="files-table">
+            <thead>
+                <tr>
+                    <th width="40px">
+                        <input type="checkbox" id="selectAllHeader" onchange="toggleSelectAll()">
+                    </th>
+                    <th width="60px">Preview</th>
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Upload Time</th>
+                    <th>Session ID</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr class="file-row">
+                    <td>
+                        <input type="checkbox" class="file-checkbox" value="{{ file.filename }}" onchange="updateBulkActions()">
+                    </td>
+                    <td class="file-preview">
+                        {% if file.file_type in ['jpg', 'jpeg', 'png', 'gif', 'svg'] %}
+                            <i class="fas fa-image file-icon image-icon"></i>
+                        {% elif file.file_type == 'pdf' %}
+                            <i class="fas fa-file-pdf file-icon pdf-icon"></i>
+                        {% elif file.file_type in ['doc', 'docx'] %}
+                            <i class="fas fa-file-word file-icon word-icon"></i>
+                        {% elif file.file_type == 'txt' %}
+                            <i class="fas fa-file-alt file-icon text-icon"></i>
+                        {% elif file.file_type == 'html' %}
+                            <i class="fas fa-code file-icon html-icon"></i>
+                        {% else %}
+                            <i class="fas fa-file file-icon default-icon"></i>
+                        {% endif %}
+                    </td>
+                    <td class="file-name">
+                        <div class="filename-main">{{ file.original_filename }}</div>
+                        <div class="filename-system">{{ file.filename }}</div>
+                        {% if file.converted_filename %}
+                        <div class="converted-file">
+                            <i class="fas fa-arrow-right"></i> {{ file.converted_filename }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="file-type">
+                        <span class="type-badge type-{{ file.file_type }}">{{ file.file_type.upper() }}</span>
+                    </td>
+                    <td class="file-size">{{ (file.file_size / 1024) | round(1) }} KB</td>
+                    <td class="upload-time">{{ file.upload_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="session-id">
+                        <code>{{ file.session_id[:8] }}...</code>
+                    </td>
+                    <td class="file-status">
+                        <span class="status-badge status-{{ file.status }}">
+                            {% if file.status == 'converted' %}
+                                <i class="fas fa-check-circle"></i> Converted
+                            {% elif file.status == 'active' %}
+                                <i class="fas fa-clock"></i> Active
+                            {% elif file.status == 'expired' %}
+                                <i class="fas fa-times-circle"></i> Expired
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td class="file-actions">
+                        <div class="action-buttons">
+                            {% if file.type == 'upload' %}
+                            <button class="btn-action btn-download" onclick="downloadFile('{{ file.filename }}', 'upload')" title="Download Original">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            {% endif %}
+                            {% if file.converted_filename %}
+                            <button class="btn-action btn-download" onclick="downloadFile('{{ file.converted_filename }}', 'output')" title="Download Converted">
+                                <i class="fas fa-file-export"></i>
+                            </button>
+                            {% endif %}
+                            <button class="btn-action btn-delete" onclick="deleteFile('{{ file.filename }}', '{{ file.type }}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-files">
+            <div class="no-files-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <h3>No Files Found</h3>
+            <p>{% if request.args.get('search') or request.args.get('file_type') or request.args.get('status') %}
+                No files match your current filters. Try adjusting your search criteria.
+            {% else %}
+                No files have been uploaded yet.
+            {% endif %}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&{{ request.query_string.decode() | replace('page=' + page|string, '') }}" class="page-btn">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        {% endif %}
+        
+        <div class="page-numbers">
+            {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                    <span class="page-btn active">{{ p }}</span>
+                {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                    <a href="?page={{ p }}&{{ request.query_string.decode() | replace('page=' + page|string, '') }}" class="page-btn">{{ p }}</a>
+                {% elif p == 4 and page > 6 %}
+                    <span class="page-ellipsis">...</span>
+                {% elif p == total_pages - 3 and page < total_pages - 5 %}
+                    <span class="page-ellipsis">...</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}&{{ request.query_string.decode() | replace('page=' + page|string, '') }}" class="page-btn">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Modern Admin Container */
+.admin-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+}
+
+/* Enhanced Header */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding: 24px 32px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.admin-header h1 {
+    color: #1e293b;
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.admin-header h1 i {
+    color: #3b82f6;
+    margin-right: 12px;
+    filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Modern Button Styles */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #64748b, #475569);
+    color: white;
+    box-shadow: 0 4px 16px rgba(100, 116, 139, 0.3);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #475569, #334155);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(100, 116, 139, 0.4);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+}
+
+.btn-outline {
+    background: rgba(255, 255, 255, 0.9);
+    color: #3b82f6;
+    border: 2px solid #3b82f6;
+    backdrop-filter: blur(10px);
+}
+
+.btn-outline:hover {
+    background: #3b82f6;
+    color: white;
+    transform: translateY(-3px);
+}
+
+/* Modern Filters Card */
+.filters-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+}
+
+.filters-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+}
+
+.filters-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.filter-group label {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 10px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 14px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 12px;
+    grid-column: 1 / -1;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+/* Enhanced Stats Section */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card:hover::before {
+    transform: scaleX(1);
+}
+
+/* Enhanced Stat Icons */
+.stat-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.stat-card:hover .stat-icon::before {
+    left: 100%;
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+}
+
+/* Enhanced Stat Content */
+.stat-content h3 {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #1e293b, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 4px 0;
+    line-height: 1;
+}
+
+.stat-content p {
+    color: #64748b;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Modern Bulk Actions */
+.bulk-actions {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 20px 32px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+}
+
+.bulk-actions::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ef4444, #f97316, #eab308);
+}
+
+.bulk-select {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bulk-select input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+.bulk-select label {
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.bulk-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.bulk-select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bulk-select input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.bulk-buttons .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+/* Modern Files Table Container */
+.files-table-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px);
+    position: relative;
+}
+
+.files-table-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+}
+
+.files-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Enhanced Table Header */
+.files-table th {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    padding: 20px 16px;
+    text-align: left;
+    font-weight: 700;
+    color: #1e293b;
+    border-bottom: 2px solid #e2e8f0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+}
+
+.files-table th::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.files-table th:hover::after {
+    transform: scaleX(1);
+}
+
+/* Enhanced Table Cells */
+.files-table td {
+    padding: 20px 16px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    vertical-align: middle;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-row {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.file-row:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+    transform: translateX(4px);
+    box-shadow: inset 4px 0 0 #3b82f6;
+}
+
+.file-row:hover td {
+    border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+/* Enhanced File Preview */
+.file-preview {
+    text-align: center;
+}
+
+.file-icon {
+    font-size: 20px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin: 0 auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.file-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.file-row:hover .file-icon::before {
+    left: 100%;
+}
+
+.file-row:hover .file-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Modern File Type Colors */
+.pdf-icon { 
+    background: linear-gradient(135deg, #ef4444, #dc2626); 
+    color: white; 
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+}
+.word-icon { 
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+    color: white; 
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+.text-icon { 
+    background: linear-gradient(135deg, #64748b, #475569); 
+    color: white; 
+    box-shadow: 0 4px 16px rgba(100, 116, 139, 0.3);
+}
+.html-icon { 
+    background: linear-gradient(135deg, #f97316, #ea580c); 
+    color: white; 
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+}
+.image-icon { 
+    background: linear-gradient(135deg, #10b981, #059669); 
+    color: white; 
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+.default-icon { 
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed); 
+    color: white; 
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+/* Enhanced File Names */
+.file-name {
+    max-width: 280px;
+}
+
+.filename-main {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+    font-size: 15px;
+    line-height: 1.4;
+    transition: color 0.3s ease;
+}
+
+.file-row:hover .filename-main {
+    color: #3b82f6;
+}
+
+.filename-system {
+    font-size: 11px;
+    color: #64748b;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    background: rgba(100, 116, 139, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.converted-file {
+    font-size: 11px;
+    color: #059669;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+}
+
+/* Modern Type Badges */
+.type-badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.type-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.type-pdf { 
+    background: linear-gradient(135deg, #fef2f2, #fee2e2); 
+    color: #dc2626; 
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+.type-docx { 
+    background: linear-gradient(135deg, #eff6ff, #dbeafe); 
+    color: #2563eb; 
+    border: 1px solid rgba(37, 99, 235, 0.2);
+}
+.type-txt { 
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9); 
+    color: #475569; 
+    border: 1px solid rgba(71, 85, 105, 0.2);
+}
+.type-html { 
+    background: linear-gradient(135deg, #fff7ed, #fed7aa); 
+    color: #ea580c; 
+    border: 1px solid rgba(234, 88, 12, 0.2);
+}
+
+/* Enhanced Session ID */
+.session-id code {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    color: #475569;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    border: 1px solid rgba(71, 85, 105, 0.1);
+    font-weight: 500;
+}
+
+/* Modern Status Badges */
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.status-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.status-converted { 
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0); 
+    color: #166534; 
+    border: 1px solid rgba(22, 101, 52, 0.2);
+}
+.status-active { 
+    background: linear-gradient(135deg, #fefce8, #fef3c7); 
+    color: #a16207; 
+    border: 1px solid rgba(161, 98, 7, 0.2);
+}
+.status-expired { 
+    background: linear-gradient(135deg, #fef2f2, #fecaca); 
+    color: #991b1b; 
+    border: 1px solid rgba(153, 27, 27, 0.2);
+}
+
+/* Enhanced Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-action {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.btn-action:hover::before {
+    left: 100%;
+}
+
+.btn-download {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.btn-download:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+/* Enhanced No Files Section */
+.no-files {
+    text-align: center;
+    padding: 80px 20px;
+    color: #64748b;
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.8));
+    border-radius: 20px;
+    margin: 20px 0;
+    border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.no-files-icon {
+    font-size: 80px;
+    margin-bottom: 24px;
+    opacity: 0.6;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.8; }
+}
+
+.no-files h3 {
+    color: #1e293b;
+    margin-bottom: 12px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.no-files p {
+    color: #64748b;
+    font-size: 16px;
+    margin-top: 8px;
+}
+
+/* Enhanced Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 40px;
+    padding: 20px;
+}
+
+.page-btn {
+    padding: 12px 16px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 12px;
+    text-decoration: none;
+    color: #475569;
+    background: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    min-width: 44px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.page-btn:hover {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+}
+
+.page-btn.active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+}
+
+.page-ellipsis {
+    padding: 12px 8px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .admin-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .filters-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .files-table-container {
+        overflow-x: auto;
+    }
+    
+    .files-table {
+        min-width: 800px;
+    }
+}
+</style>
+
+<script>
+function toggleSelectAll() {
+    console.log('toggleSelectAll called');
+    const selectAll = document.getElementById('selectAll') || document.getElementById('selectAllHeader');
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    const isChecked = selectAll.checked;
+    
+    console.log(`Found ${checkboxes.length} checkboxes, setting to ${isChecked}`);
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = isChecked;
+    });
+    
+    // Sync both select all checkboxes
+    const selectAllMain = document.getElementById('selectAll');
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    
+    if (selectAllMain) selectAllMain.checked = isChecked;
+    if (selectAllHeader) selectAllHeader.checked = isChecked;
+    
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    const checkedBoxes = document.querySelectorAll('.file-checkbox:checked');
+    const deleteBtn = document.getElementById('deleteBtn');
+    
+    console.log(`updateBulkActions: ${checkedBoxes.length}/${checkboxes.length} selected`);
+    
+    if (deleteBtn) {
+        deleteBtn.disabled = checkedBoxes.length === 0;
+    }
+    
+    // Update select all checkbox state
+    const selectAll = document.getElementById('selectAll');
+    const selectAllHeader = document.getElementById('selectAllHeader');
+    
+    if (checkedBoxes.length === 0) {
+        if (selectAll) {
+            selectAll.indeterminate = false;
+            selectAll.checked = false;
+        }
+        if (selectAllHeader) {
+            selectAllHeader.indeterminate = false;
+            selectAllHeader.checked = false;
+        }
+    } else if (checkedBoxes.length === checkboxes.length) {
+        if (selectAll) {
+            selectAll.indeterminate = false;
+            selectAll.checked = true;
+        }
+        if (selectAllHeader) {
+            selectAllHeader.indeterminate = false;
+            selectAllHeader.checked = true;
+        }
+    } else {
+        if (selectAll) selectAll.indeterminate = true;
+        if (selectAllHeader) selectAllHeader.indeterminate = true;
+    }
+}
+
+function deleteSelected() {
+    const checkedBoxes = document.querySelectorAll('.file-checkbox:checked');
+    console.log(`deleteSelected called with ${checkedBoxes.length} files`);
+    
+    if (checkedBoxes.length === 0) {
+        alert('Please select files to delete');
+        return;
+    }
+    
+    const fileIds = Array.from(checkedBoxes).map(cb => cb.value);
+    console.log('File IDs to delete:', fileIds);
+    
+    if (confirm(`Are you sure you want to delete ${checkedBoxes.length} selected file(s)?`)) {
+        // Show loading state
+        const deleteBtn = document.getElementById('deleteBtn');
+        const originalText = deleteBtn.innerHTML;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+        deleteBtn.disabled = true;
+        
+        console.log('Sending delete request to /admin/delete_files');
+        
+        fetch('/admin/delete_files', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_ids: fileIds
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success || data.deleted_files > 0) {
+                let message = `Successfully deleted ${data.deleted_files} file(s).`;
+                if (data.errors && data.errors.length > 0) {
+                    message += '\n\nSome errors occurred:\n' + data.errors.join('\n');
+                }
+                alert(message);
+                location.reload();
+            } else {
+                let errorMessage = 'Error deleting files';
+                if (data.error) {
+                    errorMessage += ': ' + data.error;
+                }
+                if (data.errors && data.errors.length > 0) {
+                    errorMessage += '\n\nDetailed errors:\n' + data.errors.join('\n');
+                }
+                alert(errorMessage);
+                console.error('Delete failed:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Network error:', error);
+            alert('Network error deleting files: ' + error);
+        })
+        .finally(() => {
+            // Restore button state
+            deleteBtn.innerHTML = originalText;
+            deleteBtn.disabled = false;
+        });
+    }
+}
+
+function downloadFile(filename, type) {
+    const url = type === 'upload' ? `/download/${filename}` : `/download_output/${filename}`;
+    window.open(url, '_blank');
+}
+
+function deleteFile(filename, type) {
+    if (confirm(`Are you sure you want to delete "${filename}"?`)) {
+        // Find the delete button for this file and show loading state
+        const deleteBtn = event.target;
+        const originalHTML = deleteBtn.innerHTML;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        deleteBtn.disabled = true;
+        
+        fetch('/admin/delete_file', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                filename: filename,
+                type: type
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`File ${filename} deleted successfully`);
+                location.reload();
+            } else {
+                let errorMessage = `Error deleting file ${filename}`;
+                if (data.error) {
+                    errorMessage += ': ' + data.error;
+                }
+                alert(errorMessage);
+            }
+        })
+        .catch(error => {
+            alert(`Network error deleting file ${filename}: ` + error);
+        })
+        .finally(() => {
+            // Restore button state
+            deleteBtn.innerHTML = originalHTML;
+            deleteBtn.disabled = false;
+        });
+    }
+}
+
+function refreshFiles() {
+    location.reload();
+}
+
+function cleanupFiles() {
+    if (confirm('Are you sure you want to cleanup expired files?')) {
+        fetch('/admin/cleanup', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            location.reload();
+        })
+        .catch(error => {
+            alert('Error during cleanup: ' + error);
+        });
+    }
+}
+
+function clearFilters() {
+    window.location.href = '/admin/files';
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    updateBulkActions();
+});
+</script>
+{% endblock %}

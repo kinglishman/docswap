@@ -1,0 +1,10 @@
+# Add this to your crontab to run monitoring every hour
+# Run: crontab -e
+# Add this line:
+0 * * * * cd /Users/bahaasalem/Desktop/DOCSWAP && python3 monitor_supabase_providers.py >> supabase_monitor.log 2>&1
+
+# Or for daily monitoring at 9 AM:
+0 9 * * * cd /Users/bahaasalem/Desktop/DOCSWAP && python3 monitor_supabase_providers.py >> supabase_monitor.log 2>&1
+
+# To view the log:
+# tail -f supabase_monitor.log

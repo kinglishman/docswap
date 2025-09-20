@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - DocSwap Admin{% endblock %}
+
+{% block content %}
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-icon cpu">
+            <i class="fas fa-microchip"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="cpu-metric">{{ metrics.cpu_percent|round(1) }}%</div>
+            <div class="metric-label">CPU Usage</div>
+            <div class="metric-trend {% if metrics.cpu_percent < 70 %}neutral{% elif metrics.cpu_percent < 90 %}up{% else %}down{% endif %}">
+                <i class="fas fa-{% if metrics.cpu_percent < 70 %}minus{% elif metrics.cpu_percent < 90 %}arrow-up{% else %}exclamation-triangle{% endif %}"></i>
+                {% if metrics.cpu_percent < 70 %}Normal{% elif metrics.cpu_percent < 90 %}High{% else %}Critical{% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon memory">
+            <i class="fas fa-memory"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="memory-metric">{{ metrics.memory_percent|round(1) }}%</div>
+            <div class="metric-label">Memory Usage</div>
+            <div class="metric-trend {% if metrics.memory_percent < 70 %}neutral{% elif metrics.memory_percent < 90 %}up{% else %}down{% endif %}">
+                <i class="fas fa-{% if metrics.memory_percent < 70 %}minus{% elif metrics.memory_percent < 90 %}arrow-up{% else %}exclamation-triangle{% endif %}"></i>
+                {% if metrics.memory_percent < 70 %}Normal{% elif metrics.memory_percent < 90 %}High{% else %}Critical{% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon disk">
+            <i class="fas fa-hdd"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="disk-metric">{{ metrics.disk_usage_percent|round(1) }}%</div>
+            <div class="metric-label">Disk Usage</div>
+            <div class="metric-trend {% if metrics.disk_usage_percent < 70 %}neutral{% elif metrics.disk_usage_percent < 90 %}up{% else %}down{% endif %}">
+                <i class="fas fa-{% if metrics.disk_usage_percent < 70 %}minus{% elif metrics.disk_usage_percent < 90 %}arrow-up{% else %}exclamation-triangle{% endif %}"></i>
+                {% if metrics.disk_usage_percent < 70 %}Normal{% elif metrics.disk_usage_percent < 90 %}High{% else %}Critical{% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-icon files">
+            <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value" id="files-metric">{{ metrics.total_files }}</div>
+            <div class="metric-label">Total Files</div>
+            <div class="metric-trend up">
+                <i class="fas fa-arrow-up"></i>
+                Active
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>System Health</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Component</th>
+                <th>Status</th>
+                <th>Details</th>
+                <th>Last Check</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Application</td>
+                <td>
+                    <span class="status-indicator status-healthy"></span>
+                    Healthy
+                </td>
+                <td>Flask app running normally</td>
+                <td>{{ health.timestamp }}</td>
+            </tr>
+            <tr>
+                <td>Database</td>
+                <td>
+                    <span class="status-indicator {% if health.database %}status-healthy{% else %}status-error{% endif %}"></span>
+                    {% if health.database %}Connected{% else %}Disconnected{% endif %}
+                </td>
+                <td>Supabase connection</td>
+                <td>{{ health.timestamp }}</td>
+            </tr>
+            <tr>
+                <td>File System</td>
+                <td>
+                    <span class="status-indicator {% if health.file_system %}status-healthy{% else %}status-error{% endif %}"></span>
+                    {% if health.file_system %}Accessible{% else %}Error{% endif %}
+                </td>
+                <td>Upload directory permissions</td>
+                <td>{{ health.timestamp }}</td>
+            </tr>
+            <tr>
+                <td>Memory</td>
+                <td>
+                    <span class="status-indicator {% if metrics.memory_percent < 85 %}status-healthy{% elif metrics.memory_percent < 95 %}status-warning{% else %}status-error{% endif %}"></span>
+                    {% if metrics.memory_percent < 85 %}Normal{% elif metrics.memory_percent < 95 %}High{% else %}Critical{% endif %}
+                </td>
+                <td>{{ metrics.memory_used_gb|round(1) }}GB / {{ metrics.memory_total_gb|round(1) }}GB</td>
+                <td>{{ health.timestamp }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Recent Activity</h2>
+    {% if recent_activity %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>File</th>
+                <th>IP Address</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for activity in recent_activity %}
+            <tr>
+                <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ activity.action }}</td>
+                <td>{{ activity.filename or 'N/A' }}</td>
+                <td>{{ activity.ip_address or 'N/A' }}</td>
+                <td>
+                    {% if activity.status == 'success' %}
+                        <span class="status-indicator status-healthy"></span>Success
+                    {% elif activity.status == 'error' %}
+                        <span class="status-indicator status-error"></span>Error
+                    {% else %}
+                        <span class="status-indicator status-warning"></span>{{ activity.status|title }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No recent activity to display.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>File Management</h2>
+    <p>Manage uploaded files and perform cleanup operations.</p>
+    
+    <div style="margin-top: 1rem;">
+        <button class="btn" onclick="performCleanup(24)">Clean files older than 24 hours</button>
+        <button class="btn" onclick="performCleanup(72)" style="margin-left: 0.5rem;">Clean files older than 3 days</button>
+        <button class="btn" onclick="performCleanup(168)" style="margin-left: 0.5rem;">Clean files older than 1 week</button>
+    </div>
+    
+    <div style="margin-top: 1rem;">
+        <button class="btn btn-primary" onclick="performAutoCleanup()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">Auto Cleanup (24h)</button>
+        <a href="{{ url_for('admin.admin_files') }}" class="btn" style="margin-left: 0.5rem;">View All Files</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>System Information</h2>
+    <table class="table">
+        <tbody>
+            <tr>
+                <td><strong>Python Version</strong></td>
+                <td>{{ system_info.python_version }}</td>
+            </tr>
+            <tr>
+                <td><strong>Flask Version</strong></td>
+                <td>{{ system_info.flask_version }}</td>
+            </tr>
+            <tr>
+                <td><strong>Server Uptime</strong></td>
+                <td>{{ system_info.uptime }}</td>
+            </tr>
+            <tr>
+                <td><strong>Upload Directory</strong></td>
+                <td>{{ system_info.upload_dir }}</td>
+            </tr>
+            <tr>
+                <td><strong>Max File Size</strong></td>
+                <td>{{ system_info.max_file_size }}</td>
+            </tr>
+            <tr>
+                <td><strong>Debug Mode</strong></td>
+                <td>{{ 'Enabled' if system_info.debug_mode else 'Disabled' }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{% if alerts %}
+<div class="card">
+    <h2>System Alerts</h2>
+    {% for alert in alerts %}
+    <div class="alert alert-{{ alert.type }}">
+        <strong>{{ alert.title }}:</strong> {{ alert.message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Real-time updates every 30 seconds
+    setInterval(function() {
+        fetch('/admin/api/metrics')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('cpu-metric').textContent = data.cpu_percent.toFixed(1) + '%';
+                document.getElementById('memory-metric').textContent = data.memory_percent.toFixed(1) + '%';
+                document.getElementById('disk-metric').textContent = data.disk_usage_percent.toFixed(1) + '%';
+                document.getElementById('files-metric').textContent = data.total_files;
+            })
+            .catch(error => console.error('Error updating metrics:', error));
+    }, 30000);
+    
+    // Check for alerts every 60 seconds
+    setInterval(function() {
+        fetch('/admin/api/alerts')
+            .then(response => response.json())
+            .then(data => {
+                if (data.alerts && data.alerts.length > 0) {
+                    // Show notification for new alerts
+                    data.alerts.forEach(alert => {
+                        if (alert.type === 'error') {
+                            console.warn('System Alert:', alert.message);
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error('Error checking alerts:', error));
+    }, 60000);
+    
+    // Cleanup functions
+    function performCleanup(hours) {
+        if (confirm(`Are you sure you want to clean up files older than ${hours} hours?`)) {
+            const formData = new FormData();
+            formData.append('hours', hours);
+            
+            fetch('/admin/cleanup', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Cleanup completed! Removed ${data.cleaned_files} files.`);
+                    location.reload();
+                } else {
+                    alert('Error during cleanup: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error during cleanup: ' + error);
+            });
+        }
+    }
+    
+    function performAutoCleanup() {
+        if (confirm('This will automatically delete all files older than 24 hours. Are you sure?')) {
+            fetch('/admin/auto_cleanup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || `Auto cleanup completed! Removed ${data.cleaned_files} files.`);
+                    location.reload();
+                } else {
+                    alert('Error during auto cleanup: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error during auto cleanup: ' + error);
+            });
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,491 @@
+2025-09-20 01:58:56,645 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 01:58:56,645 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 01:59:05,356 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 01:59:05] "[33mGET /admin/login HTTP/1.1[0m" 404 -
+2025-09-20 01:59:10,425 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 01:59:10] "[33mGET /admin/login HTTP/1.1[0m" 404 -
+2025-09-20 02:00:03,051 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:00:03,051 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:00:10,972 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:00:10] "GET /admin/login HTTP/1.1" 200 -
+2025-09-20 02:00:17,507 - __main__ - INFO - Admin login successful from 127.0.0.1
+2025-09-20 02:00:17,508 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:00:17] "[32mPOST /admin/login HTTP/1.1[0m" 302 -
+2025-09-20 02:00:23,722 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 236, in admin_dashboard
+    return render_template('admin_dashboard.html',
+                         system_metrics=system_metrics,
+                         log_stats=log_stats)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 251, in top-level template code
+    <a href="{{ url_for('admin_logout') }}" class="logout">Logout</a>
+    ^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'admin_logout'. Did you mean 'admin.admin_logout' instead?
+2025-09-20 02:00:23,729 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:00:23] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:01:44,486 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 236, in admin_dashboard
+    return render_template('admin_dashboard.html',
+                         system_metrics=system_metrics,
+                         log_stats=log_stats)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 251, in top-level template code
+    <a href="{{ url_for('admin.admin_logout') }}" class="logout">Logout</a>
+    ^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'admin_logout'. Did you mean 'admin.admin_logout' instead?
+2025-09-20 02:01:44,489 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:01:44] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:02:09,780 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:02:09,780 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:02:17,925 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 236, in admin_dashboard
+    return render_template('admin_dashboard.html',
+                         system_metrics=system_metrics,
+                         log_stats=log_stats)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 8, in block 'content'
+    <div class="metric-value" id="cpu-metric">{{ metrics.cpu_percent|round(1) }}%</div>
+    ^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'metrics' is undefined
+2025-09-20 02:02:17,930 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:02:17] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:02:56,990 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 236, in admin_dashboard
+    return render_template('admin_dashboard.html',
+                         metrics=system_metrics,
+                         log_stats=log_stats)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 8, in block 'content'
+    <div class="metric-value" id="cpu-metric">{{ metrics.cpu_percent|round(1) }}%</div>
+    ^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'metrics' is undefined
+2025-09-20 02:02:56,993 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:02:56] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:03:14,634 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:03:14,635 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:03:22,747 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 236, in admin_dashboard
+    return render_template('admin_dashboard.html',
+                         metrics=system_metrics,
+                         log_stats=log_stats)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 51, in block 'content'
+    <td>{{ health.timestamp }}</td>
+    ^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'health' is undefined
+2025-09-20 02:03:22,752 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:03:22] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:03:54,122 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 236, in admin_dashboard
+    # Basic health status
+           ^^^^^^^^^^^^^^
+    health_data = {
+    ^^^^^^^^^^^^^^^
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 51, in block 'content'
+    <td>{{ health.timestamp }}</td>
+    ^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'health' is undefined
+2025-09-20 02:03:54,124 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:03:54] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:04:05,144 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:04:05,144 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:04:13,839 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 243, in admin_dashboard
+    return render_template('admin_dashboard.html',
+                         metrics=system_metrics,
+                         log_stats=log_stats,
+                         health=health_data)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 77, in block 'content'
+    <td>{{ metrics.memory_used_gb|round(1) }}GB / {{ metrics.memory_total_gb|round(1) }}GB</td>
+    ^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/filters.py", line 1182, in do_round
+    return round(value, precision)
+TypeError: type Undefined doesn't define __round__ method
+2025-09-20 02:04:13,845 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:04:13] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:05:00,098 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 243, in admin_dashboard
+    }
+    
+    ...<2 lines>...
+                         metrics=system_metrics,
+                         ^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 77, in block 'content'
+    <td>{{ metrics.memory_used_gb|round(1) }}GB / {{ metrics.memory_total_gb|round(1) }}GB</td>
+    ^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/filters.py", line 1182, in do_round
+    return round(value, precision)
+TypeError: type Undefined doesn't define __round__ method
+2025-09-20 02:05:00,101 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:05:00] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:05:11,727 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:05:11,727 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:05:19,934 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 245, in admin_dashboard
+    return render_template('admin_dashboard.html',
+                         metrics=system_metrics,
+                         log_stats=log_stats,
+                         health=health_data)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 143, in block 'content'
+    <td>{{ system_info.python_version }}</td>
+    ^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'system_info' is undefined
+2025-09-20 02:05:19,939 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:05:19] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:05:49,778 - admin - ERROR - Exception on /admin/dashboard [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 99, in decorated_function
+    return f(*args, **kwargs)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin.py", line 245, in admin_dashboard
+    # System information
+           ^^^^^^^^^^^^^
+    ...<2 lines>...
+    system_info = {
+    ^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/base.html", line 265, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "/Users/bahaasalem/Desktop/DOCSWAP/admin_templates/admin_dashboard.html", line 143, in block 'content'
+    <td>{{ system_info.python_version }}</td>
+    ^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'system_info' is undefined
+2025-09-20 02:05:49,780 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:05:49] "[35m[1mGET /admin/dashboard HTTP/1.1[0m" 500 -
+2025-09-20 02:06:01,699 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:06:01,699 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:06:09,675 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:06:09] "GET /admin/dashboard HTTP/1.1" 200 -
+2025-09-20 02:06:25,923 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:06:25] "GET /admin/api/metrics HTTP/1.1" 200 -
+2025-09-20 02:06:31,537 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:06:31] "GET /admin/api/logs HTTP/1.1" 200 -
+2025-09-20 02:06:38,200 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:06:38] "GET /admin/api/health HTTP/1.1" 200 -
+2025-09-20 02:06:43,679 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:06:43] "GET /admin/files HTTP/1.1" 200 -
+2025-09-20 02:08:53,068 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:08:53] "GET /admin/login?ide_webview_request_time=1758323333001 HTTP/1.1" 200 -
+2025-09-20 02:08:53,599 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:08:53] "[33mGET /@vite/client HTTP/1.1[0m" 404 -
+2025-09-20 02:09:30,273 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:09:30] "GET /admin/login HTTP/1.1" 200 -
+2025-09-20 02:09:30,952 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:09:30] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-09-20 02:09:56,907 - __main__ - WARNING - Failed admin login attempt from 127.0.0.1
+2025-09-20 02:09:56,908 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:09:56] "POST /admin/login HTTP/1.1" 200 -
+2025-09-20 02:10:38,639 - __main__ - WARNING - Failed admin login attempt from 127.0.0.1
+2025-09-20 02:10:38,642 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:10:38] "POST /admin/login HTTP/1.1" 200 -
+2025-09-20 02:11:58,639 - __main__ - INFO - Admin login successful from 127.0.0.1
+2025-09-20 02:11:58,641 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:11:58] "[32mPOST /admin/login HTTP/1.1[0m" 302 -
+2025-09-20 02:11:58,642 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:11:58] "[31m[1mPOST /admin/dashboard HTTP/1.1[0m" 405 -
+2025-09-20 02:12:16,766 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:12:16] "[33mPOST /login HTTP/1.1[0m" 404 -
+2025-09-20 02:12:29,311 - __main__ - INFO - Admin login successful from 127.0.0.1
+2025-09-20 02:12:29,313 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:12:29] "[32mPOST /admin/login HTTP/1.1[0m" 302 -
+2025-09-20 02:12:29,314 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:12:29] "[31m[1mPOST /admin/dashboard HTTP/1.1[0m" 405 -
+2025-09-20 02:12:35,642 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:12:35] "GET /admin/login HTTP/1.1" 200 -
+2025-09-20 02:13:01,344 - __main__ - INFO - Admin login successful from 127.0.0.1
+2025-09-20 02:13:01,345 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:13:01] "[32mPOST /admin/login HTTP/1.1[0m" 302 -
+2025-09-20 02:13:08,991 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:13:08] "GET /admin/dashboard HTTP/1.1" 200 -
+2025-09-20 02:13:16,636 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:13:16] "GET /admin/login?ide_webview_request_time=1758323596620 HTTP/1.1" 200 -
+2025-09-20 02:13:16,714 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:13:16] "[33mGET /@vite/client HTTP/1.1[0m" 404 -
+2025-09-20 02:13:40,017 - __main__ - WARNING - Failed admin login attempt from 127.0.0.1
+2025-09-20 02:13:40,019 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:13:40] "POST /admin/login HTTP/1.1" 200 -
+2025-09-20 02:13:48,534 - __main__ - INFO - Admin login successful from 127.0.0.1
+2025-09-20 02:13:48,545 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:13:48] "[32mPOST /admin/login HTTP/1.1[0m" 302 -
+2025-09-20 02:13:49,565 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:13:49] "GET /admin/dashboard HTTP/1.1" 200 -
+2025-09-20 02:14:18,640 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:14:18] "GET /admin/files HTTP/1.1" 200 -
+2025-09-20 02:14:26,044 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:14:26] "GET /admin/files?search=&file_type=pdf&status=&sort_by=upload_time HTTP/1.1" 200 -
+2025-09-20 02:14:41,226 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:14:41] "GET /admin/api/health HTTP/1.1" 200 -
+2025-09-20 02:14:47,960 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:14:47] "GET /admin/dashboard HTTP/1.1" 200 -
+2025-09-20 02:15:14,972 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:15:14] "GET /admin/files HTTP/1.1" 200 -
+2025-09-20 02:24:43,131 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:24:43,131 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:24:50,769 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:24:50] "[33mGET /?ide_webview_request_time=1758324290734 HTTP/1.1[0m" 404 -
+2025-09-20 02:24:51,203 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:24:51] "[33mGET /@vite/client HTTP/1.1[0m" 404 -
+2025-09-20 02:25:04,717 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:25:04] "GET /admin/files HTTP/1.1" 200 -
+2025-09-20 02:25:30,213 - __main__ - INFO - Admin cleanup: removed 0 files older than 24 hours
+2025-09-20 02:25:30,217 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:25:30] "POST /admin/cleanup HTTP/1.1" 200 -
+2025-09-20 02:25:35,188 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:25:35] "GET /admin/files HTTP/1.1" 200 -
+2025-09-20 02:25:49,492 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:25:49] "GET /admin/api/health HTTP/1.1" 200 -
+2025-09-20 02:26:02,563 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:26:02] "GET /admin/files?page=2& HTTP/1.1" 200 -
+2025-09-20 02:26:24,263 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:26:24] "GET /admin/files?page=1&& HTTP/1.1" 200 -
+2025-09-20 02:31:03,047 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-09-20 02:31:03,047 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-20 02:31:10,505 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:31:10] "[33mGET /?ide_webview_request_time=1758324670485 HTTP/1.1[0m" 404 -
+2025-09-20 02:31:10,568 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:31:10] "[33mGET /@vite/client HTTP/1.1[0m" 404 -
+2025-09-20 02:32:18,872 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:32:18] "GET /admin/dashboard HTTP/1.1" 200 -
+2025-09-20 02:32:40,025 - __main__ - INFO - Auto cleanup: removed 0 files older than 24 hours
+2025-09-20 02:32:40,027 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:32:40] "POST /admin/auto_cleanup HTTP/1.1" 200 -
+2025-09-20 02:32:50,696 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:32:50] "GET /admin/dashboard HTTP/1.1" 200 -
+2025-09-20 02:32:50,698 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:32:50] "GET /admin/api/metrics HTTP/1.1" 200 -
+2025-09-20 02:32:51,715 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:32:51] "GET /admin/api/metrics HTTP/1.1" 200 -
+2025-09-20 02:32:56,307 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 02:32:56] "GET /admin/files HTTP/1.1" 200 -
+2025-09-20 03:21:33,602 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 03:21:33] "GET /admin/login?ide_webview_request_time=1758323596620 HTTP/1.1" 200 -
+2025-09-20 03:21:34,018 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 03:21:34] "[33mGET /@vite/client HTTP/1.1[0m" 404 -
+2025-09-20 03:33:16,395 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 03:33:16] "[33mGET /?ide_webview_request_time=1758324670485 HTTP/1.1[0m" 404 -
+2025-09-20 03:33:16,487 - werkzeug - INFO - 127.0.0.1 - - [20/Sep/2025 03:33:16] "[33mGET /@vite/client HTTP/1.1[0m" 404 -

@@ -1,0 +1,225 @@
+/* DocSwap - Responsive Styles */
+
+/* Tablet Styles (768px and below) */
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 0 var(--spacing-sm);
+    }
+    
+    .header .container {
+        flex-wrap: wrap;
+    }
+    
+    .nav {
+        order: 3;
+        width: 100%;
+        margin-top: var(--spacing-md);
+    }
+    
+    .nav ul {
+        justify-content: center;
+        gap: var(--spacing-md);
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+    
+    .tagline {
+        font-size: 1.1rem;
+    }
+    
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .result-actions {
+        flex-direction: column;
+    }
+}
+
+/* Mobile Styles (480px and below) */
+@media screen and (max-width: 480px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+    
+    .tagline {
+        font-size: 1rem;
+    }
+    
+    .upload-area {
+        padding: var(--spacing-md);
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .nav li {
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .file-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .file-icon {
+        margin: 0 auto var(--spacing-md);
+    }
+    
+    .link-container {
+        flex-direction: column;
+    }
+    
+    .btn-copy {
+        width: 100%;
+        margin-top: var(--spacing-xs);
+    }
+    
+    .notification {
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        max-width: none;
+    }
+}
+
+/* Mobile and Tablet Responsive for Hero */
+@media screen and (max-width: 768px) {
+    .hero-content {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xl);
+        text-align: center;
+        min-height: auto;
+    }
+    
+    .hero-text {
+        text-align: center;
+        order: 1;
+    }
+    
+    .hero-upload {
+        order: 2;
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+    
+    .tagline {
+        font-size: 1.25rem;
+    }
+    
+    .hero-description {
+        font-size: 1rem;
+        max-width: 100%;
+    }
+    
+    .hero-features {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .upload-area {
+        min-height: 280px;
+        padding: var(--spacing-xl);
+        width: 100%;
+    }
+    
+    .hero {
+        min-height: auto;
+        padding: var(--spacing-xl) 0;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+    
+    .tagline {
+        font-size: 1.125rem;
+    }
+    
+    .hero-description {
+        font-size: 0.95rem;
+    }
+    
+    .hero-content {
+        gap: var(--spacing-lg);
+    }
+    
+    .hero-features {
+        gap: var(--spacing-sm);
+    }
+    
+    .feature-item {
+        font-size: 0.9rem;
+    }
+    
+    .upload-area {
+        min-height: 240px;
+        padding: var(--spacing-lg);
+        width: 100%;
+    }
+}
+
+/* Small Height Screens */
+@media screen and (max-height: 700px) {
+    .hero {
+        padding: var(--spacing-lg) 0;
+        min-height: auto;
+    }
+    
+    .hero-content {
+        min-height: auto;
+    }
+    
+    .upload-area {
+        padding: var(--spacing-md);
+    }
+    
+    .features {
+        padding: var(--spacing-xl) 0;
+    }
+}
+
+/* Large Screens (1440px and above) */
+@media screen and (min-width: 1440px) {
+    .container {
+        max-width: 1320px;
+    }
+    
+    .hero h1 {
+        font-size: 4rem;
+    }
+    
+    .tagline {
+        font-size: 1.5rem;
+    }
+    
+    .upload-container {
+        max-width: 700px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .header, .footer, .features, .upload-container, .conversion-options, .result-actions {
+        display: none;
+    }
+    
+    .result-preview {
+        box-shadow: none;
+        border: none;
+    }
+}
