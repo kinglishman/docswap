@@ -1,5 +1,7 @@
 /* DocSwap - Main JavaScript */
 
+console.log('🚀 Main.js script loading...');
+
 // Global variables
 let currentFile = null;
 let convertedFileUrl = null;
@@ -8,6 +10,9 @@ let authToken = null;
 
 // DOM Elements
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎯 DOM Content Loaded - Initializing DocSwap');
+    console.log('🔍 Document ready state:', document.readyState);
+    
     // Initialize the application
     initApp();
     
@@ -17,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Initialize the application
 function initApp() {
+    console.log('🔧 initApp called');
+    
     // Always start at the top of the page for professional UX
     resetPageToHome();
     
@@ -24,10 +31,13 @@ function initApp() {
     checkExistingSession();
     
     // Set up event listeners
+    console.log('🔧 Setting up event listeners...');
     setupEventListeners();
     
     // Initialize scroll optimizations
     initScrollOptimizations();
+    
+    console.log('✅ initApp completed');
 }
 
 // Check if there's an existing session
@@ -135,12 +145,23 @@ function setupEventListeners() {
     const fileInput = document.getElementById('file-input');
     const fileSelectBtn = document.getElementById('file-select-btn');
     
+    console.log('Setting up event listeners...');
+    console.log('File input element:', fileInput);
+    console.log('File select button:', fileSelectBtn);
+    
     if (fileSelectBtn && fileInput) {
+        console.log('Adding click event listener to file select button');
         fileSelectBtn.addEventListener('click', () => {
+            console.log('File select button clicked, triggering file input click');
             fileInput.click();
         });
         
+        console.log('Adding change event listener to file input');
         fileInput.addEventListener('change', handleFileSelect);
+    } else {
+        console.error('File input or file select button not found!');
+        console.error('fileInput:', fileInput);
+        console.error('fileSelectBtn:', fileSelectBtn);
     }
     
     // Drag and drop
@@ -182,17 +203,32 @@ function setupEventListeners() {
     
     // Convert button
     const convertBtn = document.getElementById('convert-btn');
+    console.log('🔍 Convert button found:', convertBtn);
+    console.log('🔍 Convert button classes:', convertBtn?.className);
+    console.log('🔍 Convert button disabled:', convertBtn?.disabled);
+    console.log('🔍 Convert button style display:', convertBtn?.style.display);
+    
     if (convertBtn) {
-        convertBtn.addEventListener('click', handleConversion);
+        convertBtn.addEventListener('click', function(e) {
+            console.log('🖱️ Convert button clicked! Event:', e);
+            handleConversion();
+        });
+        console.log('✅ Convert button event listener attached');
+        
+        // Test if button is clickable
+        console.log('🔍 Button offsetParent (visible):', convertBtn.offsetParent !== null);
+        console.log('🔍 Button getBoundingClientRect:', convertBtn.getBoundingClientRect());
+    } else {
+        console.error('❌ Convert button not found in DOM');
     }
     
     // Download button
     const downloadBtn = document.getElementById('download-btn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', () => {
-            if (convertedFileUrl) {
+            if (convertedFileUrl && typeof convertedFileUrl === 'string') {
                 // Add download=true parameter to force download instead of preview
-                const downloadUrl = convertedFileUrl.includes('?') ? 
+                const downloadUrl = (convertedFileUrl && typeof convertedFileUrl === 'string' && convertedFileUrl.includes('?')) ? 
                     `${convertedFileUrl}&download=true` : 
                     `${convertedFileUrl}?download=true`;
                 
@@ -250,31 +286,30 @@ function setupEventListeners() {
         });
     }
     
-    // Modal close functionality
-    const modalCloseBtn = document.getElementById('modal-close-btn');
-    const modalBackdrop = document.getElementById('conversion-modal');
-    const modalContainer = document.querySelector('.modal-container');
+    // Unified Modal functionality
+    const unifiedModal = document.getElementById('unified-conversion-modal');
+    const unifiedModalCloseBtn = document.getElementById('unified-modal-close-btn');
     
-    if (modalCloseBtn) {
-        modalCloseBtn.addEventListener('click', closeConversionModal);
+    if (unifiedModalCloseBtn) {
+        unifiedModalCloseBtn.addEventListener('click', closeUnifiedModal);
     }
     
-    if (modalBackdrop) {
-        modalBackdrop.addEventListener('click', (e) => {
+    if (unifiedModal) {
+        unifiedModal.addEventListener('click', (e) => {
             // Close modal if clicking on backdrop (not on modal content)
-            if (e.target === modalBackdrop) {
-                closeConversionModal();
+            if (e.target === unifiedModal) {
+                closeUnifiedModal();
             }
         });
     }
     
-    // Modal download button
-    const modalDownloadBtn = document.getElementById('modal-download-btn');
-    if (modalDownloadBtn) {
-        modalDownloadBtn.addEventListener('click', () => {
-            if (convertedFileUrl) {
+    // Result download button
+    const resultDownloadBtn = document.getElementById('result-download-btn');
+    if (resultDownloadBtn) {
+        resultDownloadBtn.addEventListener('click', () => {
+            if (convertedFileUrl && typeof convertedFileUrl === 'string') {
                 // Add download=true parameter to force download instead of preview
-                const downloadUrl = convertedFileUrl.includes('?') ? 
+                const downloadUrl = (convertedFileUrl && typeof convertedFileUrl === 'string' && convertedFileUrl.includes('?')) ? 
                     `${convertedFileUrl}&download=true` : 
                     `${convertedFileUrl}?download=true`;
                 
@@ -289,11 +324,11 @@ function setupEventListeners() {
         });
     }
     
-    // Modal new conversion button
-    const modalNewConversionBtn = document.getElementById('modal-new-conversion-btn');
-    if (modalNewConversionBtn) {
-        modalNewConversionBtn.addEventListener('click', () => {
-            closeConversionModal();
+    // Result new conversion button
+    const resultNewConversionBtn = document.getElementById('result-new-conversion-btn');
+    if (resultNewConversionBtn) {
+        resultNewConversionBtn.addEventListener('click', () => {
+            closeUnifiedModal();
             resetConversion();
         });
     }
@@ -317,10 +352,15 @@ function handleDrop(e) {
 
 // Handle file selection from input
 function handleFileSelect(e) {
+    console.log('handleFileSelect called');
     const files = e.target.files;
+    console.log('Files selected:', files.length);
     if (files.length > 0) {
+        console.log('Processing first file:', files[0].name, files[0].size, 'bytes');
         // Handle single file
         handleFile(files[0]);
+    } else {
+        console.log('No files selected');
     }
 }
 
@@ -352,8 +392,13 @@ function handleFile(file) {
         
         // File uploaded successfully - no notification needed as UI already shows success state
         
-        // Show file processing section smoothly without animations
+        // Hide conversion guide and show file processing section smoothly without animations
+        const conversionGuide = document.getElementById('conversion-guide');
         const fileProcessingSection = document.getElementById('file-processing');
+        
+        if (conversionGuide) {
+            conversionGuide.classList.add('hidden');
+        }
         fileProcessingSection.classList.remove('hidden');
         
         // Smooth scroll to conversion options
@@ -391,7 +436,6 @@ function updateConversionOptions(file) {
             { value: 'odt', label: 'OpenDocument Text (.odt)' },
             { value: 'rtf', label: 'Rich Text Format (.rtf)' },
             { value: 'txt', label: 'Plain Text (.txt)' },
-            { value: 'html', label: 'HTML Document (.html)' },
             // Image formats
             { value: 'jpg', label: 'JPEG Image (.jpg)' },
             { value: 'png', label: 'PNG Image (.png)' },
@@ -417,7 +461,6 @@ function updateConversionOptions(file) {
         // Word documents
         
         formats = [
-            { value: 'pdf', label: 'PDF Document (.pdf)' },
             { value: 'odt', label: 'OpenDocument Text (.odt)' },
             { value: 'rtf', label: 'Rich Text Format (.rtf)' },
             { value: 'txt', label: 'Plain Text (.txt)' },
@@ -616,26 +659,26 @@ function simulateAiSuggestion(file) {
     
     // Simulate processing delay
     setTimeout(() => {
-        const fileName = file.name.toLowerCase();
+        const fileName = file.name ? file.name.toLowerCase() : '';
         
         if (fileName.endsWith('.pdf')) {
             // Suggest based on PDF content (simulated)
-            if (fileName.includes('report') || fileName.includes('doc')) {
+            if (fileName && typeof fileName === 'string' && (fileName.includes('report') || fileName.includes('doc'))) {
                 suggestionContent.innerHTML = `
                     <p>Based on your PDF content, we recommend converting to <strong>Word (.docx)</strong> for easy editing.</p>
                     <button class="btn btn-select" onclick="applyAiSuggestion('docx')">Apply Suggestion</button>
                 `;
-            } else if (fileName.includes('table') || fileName.includes('data')) {
+            } else if (fileName && typeof fileName === 'string' && (fileName.includes('table') || fileName.includes('data'))) {
                 suggestionContent.innerHTML = `
                     <p>Your PDF appears to contain tabular data. We recommend converting to <strong>Excel (.xlsx)</strong>.</p>
                     <button class="btn btn-select" onclick="applyAiSuggestion('xlsx')">Apply Suggestion</button>
                 `;
-            } else if (fileName.includes('slide') || fileName.includes('presentation')) {
+            } else if (fileName && typeof fileName === 'string' && (fileName.includes('slide') || fileName.includes('presentation'))) {
                 suggestionContent.innerHTML = `
                     <p>This looks like a presentation. We recommend converting to <strong>PowerPoint (.pptx)</strong>.</p>
                     <button class="btn btn-select" onclick="applyAiSuggestion('pptx')">Apply Suggestion</button>
                 `;
-            } else if (fileName.includes('image') || fileName.includes('scan')) {
+            } else if (fileName && typeof fileName === 'string' && (fileName.includes('image') || fileName.includes('scan'))) {
                 suggestionContent.innerHTML = `
                     <p>This PDF contains images. We recommend converting to <strong>JPEG</strong> with OCR enabled.</p>
                     <button class="btn btn-select" onclick="applyAiSuggestion('jpg', true)">Apply Suggestion</button>
@@ -701,10 +744,26 @@ function applyAiSuggestion(format, enableOcr = false) {
 
 // Handle the conversion process
 function handleConversion() {
+    console.log('🔄 handleConversion called - BUTTON CLICKED!');
+    console.log('🔍 Current file state:', currentFile);
+    console.log('🔍 Session ID state:', sessionId);
+    console.log('🔍 API Base URL state:', window.API_BASE_URL);
+    
+    // Validate that a file is selected
+    if (!currentFile) {
+        console.log('❌ No file selected for conversion');
+        showNotification('Please select a file first before converting', 'error');
+        return;
+    }
+    
+    console.log('📁 File selected:', currentFile.name, currentFile.type);
+    
     // Get selected options
     const outputFormat = document.getElementById('output-format').value;
     const ocrEnabled = document.getElementById('ocr-option').checked;
     const compressionLevel = document.getElementById('compression-level').value;
+    
+    console.log('📋 Conversion options:', { outputFormat, ocrEnabled, compressionLevel });
     
     // Get advanced options
     const imageQuality = document.getElementById('image-quality').value;
@@ -735,216 +794,48 @@ function handleConversion() {
     showConversionResult(outputFormat);
 }
 
-// Show conversion result
+// Show conversion result using unified modal
 function showConversionResult(outputFormat) {
+    console.log('🎯 showConversionResult called with format:', outputFormat);
+    console.log('📁 Current file:', currentFile);
+    console.log('🆔 Session ID:', sessionId);
+    
     // Hide file processing section
     document.getElementById('file-processing').classList.add('hidden');
     
-    // Show conversion result modal instead of page section
-    const conversionModal = document.getElementById('conversion-modal');
-    conversionModal.classList.remove('hidden');
+    // Show unified modal in processing state
+    showUnifiedModal();
     
     // Upload the file to the server and get the converted file URL
     uploadAndConvertFile(outputFormat);
-    
-    // Enhanced conversion progress with detailed steps
-    function startConversionProgress(outputFormat) {
-        let progress = 0;
-        const steps = [
-            { message: "Uploading file...", percentage: 10, step: "Step 1 of 4", time: "30s" },
-            { message: "Analyzing file structure...", percentage: 30, step: "Step 2 of 4", time: "20s" },
-            { message: "Converting to " + outputFormat.toUpperCase() + "...", percentage: 70, step: "Step 3 of 4", time: "10s" },
-            { message: "Finalizing conversion...", percentage: 90, step: "Step 4 of 4", time: "5s" }
-        ];
-        
-        let currentStepIndex = 0;
-        
-        // Clear any existing interval
-        if (window.conversionProgressInterval) {
-            clearInterval(window.conversionProgressInterval);
-        }
-        
-        window.conversionProgressInterval = setInterval(() => {
-            if (currentStepIndex < steps.length) {
-                const currentStep = steps[currentStepIndex];
-                updateProgressStatus(
-                    currentStep.message, 
-                    currentStep.percentage, 
-                    currentStep.step, 
-                    currentStep.time
-                );
-                currentStepIndex++;
-            } else {
-                clearInterval(window.conversionProgressInterval);
-            }
-        }, 2000); // Update every 2 seconds
-    }
+}
 
-    // Enhanced file upload and conversion with better progress tracking
-    function uploadAndConvertFile(outputFormat) {
-        // Get all conversion options (use stored options if available)
-        const options = window.conversionOptions || {};
-        const ocrEnabled = options.ocrEnabled || document.getElementById('ocr-option').checked;
-        const compressionLevel = options.compressionLevel || document.getElementById('compression-level').value;
-        
-        // Create FormData object
-        const formData = new FormData();
-        formData.append('file', currentFile);
-        formData.append('sessionId', sessionId);
-        
-        // Start enhanced progress tracking
-        startConversionProgress(outputFormat);
-        
-        // First upload the file
-        fetch(`${API_BASE_URL}/api/upload`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            updateProgressStatus('File uploaded successfully!', 25, 'Step 2 of 4', '25s');
-            
-            if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(getErrorMessage(response.status, errorData));
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            updateProgressStatus('Starting conversion process...', 40, 'Step 3 of 4', '15s');
-            
-            // Now convert the file
-            return fetch(`${API_BASE_URL}/api/convert`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    fileId: data.fileId,
-                    outputFormat: outputFormat,
-                    sessionId: sessionId,
-                    options: {
-                        ocr: ocrEnabled,
-                        compression: compressionLevel,
-                        imageQuality: options.imageQuality || 'high',
-                        imageResolution: options.imageResolution || '150',
-                        preserveFormatting: options.preserveFormatting || false,
-                        textEncoding: options.textEncoding || 'utf-8'
-                    }
-                })
-            });
-        })
-        .then(response => {
-            updateProgressStatus('Processing conversion...', 80, 'Step 4 of 4', '5s');
-            
-            if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(getErrorMessage(response.status, errorData));
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            updateProgressStatus('Conversion completed successfully!', 100, 'Complete!', '0s');
-            
-            // Store the converted file URL
-            convertedFileUrl = data.url;
-            
-            // Clear the progress interval
-            if (window.conversionProgressInterval) {
-                clearInterval(window.conversionProgressInterval);
-            }
-            
-            // Hide loading overlay immediately after completion
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.classList.add('hidden');
-            
-            // Generate a share URL with the session ID
-            const shareUrl = document.getElementById('share-url');
-            shareUrl.value = data.sessionUrl || `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
-            
-            // Show small success message instead of large notification
-            showConversionSuccessMessage(outputFormat);
-            
-            // Show preview based on output format
-            updatePreview(outputFormat, data.url);
-        })
-        .catch(error => {
-            console.error('Conversion error:', error);
-            
-            // Clear the progress interval
-            if (window.conversionProgressInterval) {
-                clearInterval(window.conversionProgressInterval);
-            }
-            
-            // Hide loading overlay
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.classList.add('hidden');
-            
-            // Show detailed error notification with retry option
-            showDetailedError(error.message, outputFormat);
-            
-            // Reset to upload state
-            resetConversion();
-        });
-    }
-
-    // Enhanced conversion handling with better loading states
-    function handleConversion() {
-        const outputFormat = document.getElementById('output-format').value;
-        
-        if (!outputFormat) {
-            showNotification('Please select an output format', 'warning');
-            return;
-        }
-        
-        // Store conversion options for potential retry
-        window.conversionOptions = {
-            ocrEnabled: document.getElementById('ocr-option').checked,
-            compressionLevel: document.getElementById('compression-level').value,
-            imageQuality: document.getElementById('image-quality')?.value || 'high',
-            imageResolution: document.getElementById('image-resolution')?.value || '150',
-            preserveFormatting: document.getElementById('preserve-formatting')?.checked || false,
-            textEncoding: document.getElementById('text-encoding')?.value || 'utf-8'
-        };
-        
-        // Skip loading overlay - proceed directly to conversion
-        
-        // Start the conversion process
-        uploadAndConvertFile(outputFormat);
-    }
-
-    // Enhanced progress status updates with step tracking and tips
-    function updateProgressStatus(message, percentage, step = null, estimatedTime = null) {
-        const loadingText = document.getElementById('loading-text');
+// Enhanced progress status updates with step tracking and tips for unified modal
+function updateProgressStatus(message, percentage, step = null, estimatedTime = null) {
+        const processingText = document.getElementById('processing-text');
         const progressBar = document.getElementById('progress-bar');
-        const progressPercentage = document.getElementById('progress-percentage');
-        const loadingStep = document.getElementById('loading-step');
-        const loadingTime = document.getElementById('loading-time');
-        const loadingTip = document.getElementById('loading-tip');
+        const processingStep = document.getElementById('processing-step');
+        const processingTime = document.getElementById('processing-time');
+        const processingTip = document.getElementById('processing-tip');
         
-        if (loadingText) {
-            loadingText.textContent = message;
+        if (processingText) {
+            processingText.textContent = message;
         }
         
         if (progressBar) {
             progressBar.style.width = `${percentage}%`;
         }
         
-        if (progressPercentage) {
-            progressPercentage.textContent = `${Math.round(percentage)}%`;
+        if (processingStep && step) {
+            processingStep.textContent = step;
         }
         
-        if (loadingStep && step) {
-            loadingStep.textContent = step;
-        }
-        
-        if (loadingTime && estimatedTime) {
-            loadingTime.textContent = `Estimated time: ${estimatedTime}`;
+        if (processingTime && estimatedTime) {
+            processingTime.textContent = `Estimated time: ${estimatedTime}`;
         }
         
         // Update tip based on progress
-        if (loadingTip) {
+        if (processingTip) {
             const tips = [
                 "DocSwap supports over 50 file formats!",
                 "Your files are processed securely and deleted after conversion.",
@@ -957,12 +848,15 @@ function showConversionResult(outputFormat) {
             ];
             
             const tipIndex = Math.floor(percentage / 12.5) % tips.length;
-            loadingTip.textContent = tips[tipIndex];
+            processingTip.textContent = tips[tipIndex];
         }
     }
 
-    // Enhanced conversion progress with detailed steps
-    function startConversionProgress(outputFormat) {
+// Enhanced conversion progress with steps
+function startConversionProgress(outputFormat) {
+        // Show the unified conversion modal
+        showUnifiedModal();
+        
         let progress = 0;
         const steps = [
             { message: "Uploading file...", percentage: 10, step: "Step 1 of 4", time: "30s" },
@@ -994,8 +888,37 @@ function showConversionResult(outputFormat) {
         }, 2000); // Update every 2 seconds
     }
 
-    // Enhanced file upload and conversion with better progress tracking
-    function uploadAndConvertFile(outputFormat) {
+// Enhanced file upload and conversion with better progress tracking
+function uploadAndConvertFile(outputFormat) {
+        console.log('📤 uploadAndConvertFile called with format:', outputFormat);
+        console.log('📁 Current file check:', currentFile);
+        console.log('🆔 Session ID check:', sessionId);
+        console.log('🌐 API Base URL:', window.API_BASE_URL);
+        
+        // Validate required data
+        if (!currentFile) {
+            console.error('❌ No file selected for upload');
+            showNotification('No file selected for conversion', 'error');
+            return;
+        }
+        
+        if (!sessionId) {
+            console.error('❌ No session ID available');
+            showNotification('Session error. Please refresh the page and try again.', 'error');
+            return;
+        }
+        
+        if (!window.API_BASE_URL) {
+            console.error('❌ API Base URL not configured');
+            showNotification('Configuration error. Please refresh the page and try again.', 'error');
+            return;
+        }
+        
+        // Set conversion in progress to prevent auth modal interference
+        if (window.auth) {
+            window.auth.setConversionInProgress(true);
+        }
+        
         // Get all conversion options (use stored options if available)
         const options = window.conversionOptions || {};
         const ocrEnabled = options.ocrEnabled || document.getElementById('ocr-option').checked;
@@ -1010,7 +933,7 @@ function showConversionResult(outputFormat) {
         startConversionProgress(outputFormat);
         
         // First upload the file
-        fetch(`${API_BASE_URL}/api/upload`, {
+        fetch(`${window.API_BASE_URL}/api/upload/public`, {
             method: 'POST',
             body: formData
         })
@@ -1020,6 +943,9 @@ function showConversionResult(outputFormat) {
             if (!response.ok) {
                 return response.json().then(errorData => {
                     throw new Error(getErrorMessage(response.status, errorData));
+                }).catch(() => {
+                    // If JSON parsing fails, use status text
+                    throw new Error(getErrorMessage(response.status, response.statusText || 'Upload failed'));
                 });
             }
             return response.json();
@@ -1028,15 +954,15 @@ function showConversionResult(outputFormat) {
             updateProgressStatus('Starting conversion process...', 40, 'Step 3 of 4', '15s');
             
             // Now convert the file
-            return fetch(`${API_BASE_URL}/api/convert`, {
+            return fetch(`${window.API_BASE_URL}/api/convert/public`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    fileId: data.fileId,
-                    outputFormat: outputFormat,
-                    sessionId: sessionId,
+                    file_id: data.file_id,
+                    output_format: outputFormat,
+                    session_id: sessionId,
                     options: {
                         ocr: ocrEnabled,
                         compression: compressionLevel,
@@ -1054,6 +980,9 @@ function showConversionResult(outputFormat) {
             if (!response.ok) {
                 return response.json().then(errorData => {
                     throw new Error(getErrorMessage(response.status, errorData));
+                }).catch(() => {
+                    // If JSON parsing fails, use status text
+                    throw new Error(getErrorMessage(response.status, response.statusText || 'Conversion failed'));
                 });
             }
             return response.json();
@@ -1061,27 +990,40 @@ function showConversionResult(outputFormat) {
         .then(data => {
             updateProgressStatus('Conversion completed successfully!', 100, 'Complete!', '0s');
             
-            // Store the converted file URL
-            convertedFileUrl = data.url;
+            // Store the converted file URL with proper base URL
+            convertedFileUrl = data.download_url.startsWith('http') 
+                ? data.download_url 
+                : `${window.API_BASE_URL}${data.download_url}`;
             
             // Clear the progress interval
             if (window.conversionProgressInterval) {
                 clearInterval(window.conversionProgressInterval);
             }
             
-            // Hide loading overlay immediately after completion
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.classList.add('hidden');
+            // Mark conversion as completed
+            if (window.auth) {
+                window.auth.setConversionInProgress(false);
+            }
+            
+            // Transition from processing to result state in unified modal
+            setTimeout(() => {
+                transitionToResultState();
+            }, 500); // Small delay for smooth transition
             
             // Generate a share URL with the session ID
             const shareUrl = document.getElementById('share-url');
-            shareUrl.value = data.sessionUrl || `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+            if (shareUrl) {
+                shareUrl.value = data.sessionUrl || `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+            }
             
             // Show small success message instead of large notification
             showConversionSuccessMessage(outputFormat);
             
-            // Show preview based on output format
-            updatePreview(outputFormat, data.url);
+            // Show preview based on output format with a small delay to ensure modal is rendered
+            setTimeout(() => {
+                console.log('Updating preview with URL:', convertedFileUrl, 'Format:', outputFormat);
+            updatePreview(outputFormat, convertedFileUrl);
+            }, 100);
         })
         .catch(error => {
             console.error('Conversion error:', error);
@@ -1091,20 +1033,25 @@ function showConversionResult(outputFormat) {
                 clearInterval(window.conversionProgressInterval);
             }
             
-            // Hide loading overlay
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.classList.add('hidden');
+            // Mark conversion as completed (even on error)
+            if (window.auth) {
+                window.auth.setConversionInProgress(false);
+            }
+            
+            // Hide unified modal on error
+            closeUnifiedModal();
             
             // Show detailed error notification with retry option
-            showDetailedError(error.message, outputFormat);
+            const errorMessage = error?.message || error?.toString() || 'An unexpected error occurred during conversion';
+            showDetailedError(errorMessage, outputFormat);
             
             // Reset to upload state
             resetConversion();
         });
     }
 
-    // Enhanced conversion handling with better loading states
-    function handleConversion() {
+// Enhanced conversion handling with better loading states  
+function handleConversionWithOptions() {
         const outputFormat = document.getElementById('output-format').value;
         
         if (!outputFormat) {
@@ -1128,9 +1075,21 @@ function showConversionResult(outputFormat) {
         uploadAndConvertFile(outputFormat);
     }
 
-    // Get user-friendly error messages
-    function getErrorMessage(statusCode, errorData) {
-        const errorMessage = errorData?.error || 'Unknown error occurred';
+// Get user-friendly error messages
+function getErrorMessage(statusCode, errorData) {
+        // Safely extract error message with proper type checking
+        let errorMessage = 'Unknown error occurred';
+        
+        if (errorData) {
+            if (typeof errorData === 'string') {
+                errorMessage = errorData;
+            } else if (typeof errorData === 'object') {
+                errorMessage = errorData.error || errorData.message || errorData.detail || 'Unknown error occurred';
+            }
+        }
+        
+        // Ensure errorMessage is a string
+        errorMessage = String(errorMessage);
         
         switch (statusCode) {
             case 400:
@@ -1162,8 +1121,8 @@ function showConversionResult(outputFormat) {
         }
     }
 
-    // Show detailed error with retry options
-    function showDetailedError(errorMessage, outputFormat) {
+// Show detailed error with retry options
+function showDetailedError(errorMessage, outputFormat) {
         const errorContainer = document.createElement('div');
         errorContainer.className = 'detailed-error-container';
         errorContainer.innerHTML = `
@@ -1200,6 +1159,16 @@ function showConversionResult(outputFormat) {
         
         document.body.appendChild(errorContainer);
         
+        // Add click-outside-to-close functionality
+        const errorOverlay = errorContainer.querySelector('.error-overlay');
+        if (errorOverlay) {
+            errorOverlay.addEventListener('click', (e) => {
+                if (e.target === errorOverlay) {
+                    closeErrorModal();
+                }
+            });
+        }
+        
         // Add styles for error modal
         if (!document.getElementById('error-modal-styles')) {
             const styleEl = document.createElement('style');
@@ -1228,7 +1197,7 @@ function showConversionResult(outputFormat) {
                 .error-modal {
                     background: white;
                     border-radius: 12px;
-                    max-width: 500px;
+                    max-width: 350px;
                     width: 100%;
                     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
                     animation: errorModalSlideIn 0.3s ease-out;
@@ -1319,16 +1288,16 @@ function showConversionResult(outputFormat) {
         }
     }
 
-    // Close error modal
-    function closeErrorModal() {
+// Close error modal
+function closeErrorModal() {
         const errorContainer = document.querySelector('.detailed-error-container');
         if (errorContainer) {
             errorContainer.remove();
         }
     }
 
-    // Retry conversion
-    function retryConversion(outputFormat) {
+// Retry conversion
+function retryConversion(outputFormat) {
         closeErrorModal();
         
         // Show notification about retry
@@ -1340,8 +1309,8 @@ function showConversionResult(outputFormat) {
         }, 2000);
     }
 
-    // Choose new file
-    function chooseNewFile() {
+// Choose new file
+function chooseNewFile() {
         closeErrorModal();
         resetConversion();
         
@@ -1352,17 +1321,37 @@ function showConversionResult(outputFormat) {
         }
     }
 
-    // Update preview based on output format
-    function updatePreview(outputFormat, fileUrl) {
-        const previewContainer = document.getElementById('modal-preview-container');
+// Helper function to check if format is an image
+function isImageFormat(format) {
+    const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'tif', 'svg', 'ico'];
+    return imageFormats.includes(format.toLowerCase());
+}
+
+// Update preview based on output format
+function updatePreview(outputFormat, fileUrl) {
+        const previewContainer = document.getElementById('result-preview-container');
+        console.log('updatePreview called with:', { outputFormat, fileUrl, previewContainer });
+        
+        if (!previewContainer) {
+            console.error('Preview container not found!');
+            return;
+        }
+        
+        if (!fileUrl) {
+            console.error('No file URL provided for preview');
+            return;
+        }
         
         // Add preview parameter to the URL to ensure inline display
-        const previewUrl = fileUrl.includes('?') ? 
+        const previewUrl = (fileUrl && typeof fileUrl === 'string' && fileUrl.includes('?')) ? 
             `${fileUrl}&preview=true` : 
             `${fileUrl}?preview=true`;
         
         // Add cache-busting parameter to prevent browser caching issues
         const cacheBustUrl = `${previewUrl}&t=${new Date().getTime()}`;
+        
+        console.log('Preview URLs:', { original: fileUrl, preview: previewUrl, cacheBust: cacheBustUrl });
+        console.log('Output format:', outputFormat, 'Is image format:', isImageFormat(outputFormat));
         
         if (outputFormat === 'pdf' || currentFile.type === 'application/pdf') {
             // PDF preview with enhanced error handling
@@ -1379,20 +1368,21 @@ function showConversionResult(outputFormat) {
                     </div>
                 </div>
             `;
-        } else if (outputFormat === 'jpg' || outputFormat === 'png' || outputFormat === 'jpeg') {
-            // Image preview with enhanced error handling
+        } else if (isImageFormat(outputFormat)) {
+            // Enhanced image preview with better error handling for all image formats
+            console.log('Creating image preview for format:', outputFormat);
             previewContainer.innerHTML = `
                 <div class="preview-wrapper">
-                    <img src="${cacheBustUrl}" alt="Converted Image" 
-                         onload="this.parentNode.classList.add('loaded')"
-                         onerror="handlePreviewError(this, '${fileUrl}', 'image')"
-                         style="max-width: 100%; height: auto;">
-                <div class="preview-loading">
-                    <div class="spinner"></div>
-                    <p>Loading image preview...</p>
+                    <img src="${cacheBustUrl}" alt="Converted ${outputFormat.toUpperCase()} Image" 
+                         onload="this.parentNode.classList.add('loaded'); console.log('${outputFormat.toUpperCase()} preview loaded successfully');"
+                         onerror="console.error('${outputFormat.toUpperCase()} preview failed to load:', this.src); handlePreviewError(this, '${fileUrl}', 'image');"
+                         style="max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <div class="preview-loading">
+                        <div class="spinner"></div>
+                        <p>Loading ${outputFormat.toUpperCase()} preview...</p>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
         } else {
             // Generic preview for other formats
             previewContainer.innerHTML = `
@@ -1421,6 +1411,12 @@ function showConversionResult(outputFormat) {
                 .preview-wrapper {
                     position: relative;
                     min-height: 200px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: var(--surface-color);
+                    border-radius: 8px;
+                    overflow: hidden;
                 }
                 .preview-loading {
                     position: absolute;
@@ -1432,8 +1428,10 @@ function showConversionResult(outputFormat) {
                     flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    background: rgba(255,255,255,0.9);
+                    background: rgba(255,255,255,0.95);
+                    backdrop-filter: blur(4px);
                     z-index: 1;
+                    border-radius: 8px;
                 }
                 .preview-wrapper.loaded .preview-loading {
                     display: none;
@@ -1484,18 +1482,44 @@ function showConversionResult(outputFormat) {
         }
     }
 
-    // Handle preview errors
-    function handlePreviewError(element, fileUrl, type) {
+// Handle preview errors with enhanced reliability
+function handlePreviewError(element, fileUrl, type) {
+        console.log('Preview error occurred:', { element, fileUrl, type });
+        
         // Hide the element that failed to load
         element.style.display = 'none';
         
-        // Create error message with retry and download options
+        // Create enhanced error message with retry and download options
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
+        errorDiv.className = 'preview-error-message';
         errorDiv.innerHTML = `
-            <p>Unable to display ${type}. The file may still be processing or the format might not be supported by your browser.</p>
-            <button class="retry-button" onclick="retryPreview('${fileUrl}', '${type}')">Retry Preview</button>
-            <a href="${fileUrl}" download class="download-button">Download File</a>
+            <div class="error-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <h4>Preview Unavailable</h4>
+            <p>Unable to display ${type}. The file may still be processing or your browser doesn't support this format.</p>
+            <div class="error-actions">
+                <button class="retry-button" onclick="retryPreview('${fileUrl}', '${type}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Retry Preview
+                </button>
+                <a href="${fileUrl}" download class="download-button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download File
+                </a>
+            </div>
         `;
         
         // Find the preview wrapper and append the error message
@@ -1505,25 +1529,45 @@ function showConversionResult(outputFormat) {
         // Hide the loading indicator
         const loadingEl = previewWrapper.querySelector('.preview-loading');
         if (loadingEl) loadingEl.style.display = 'none';
+        
+        // Add error styling to wrapper
+        previewWrapper.classList.add('preview-error');
     }
 
-    // Retry loading the preview
-    function retryPreview(fileUrl, type) {
+// Retry loading the preview with enhanced reliability
+function retryPreview(fileUrl, type) {
+        console.log('Retrying preview:', { fileUrl, type });
+        
         // Get the preview container
-        const previewContainer = document.getElementById('preview-container');
-        
-        // Add cache-busting parameter
-        const cacheBustUrl = `${fileUrl}?preview=true&t=${new Date().getTime()}`;
-        
-        if (type === 'pdf') {
-            // Recreate PDF preview
-            updatePreview('pdf', fileUrl);
-        } else if (type === 'image') {
-            // Recreate image preview
-            updatePreview('jpg', fileUrl);
+        const previewContainer = document.getElementById('result-preview-container');
+        if (!previewContainer) {
+            console.error('Result preview container not found');
+            return;
         }
+        
+        // Clear existing content and show loading
+        previewContainer.innerHTML = `
+            <div class="preview-loading">
+                <div class="spinner"></div>
+                <p>Retrying preview...</p>
+            </div>
+        `;
+        
+        // Wait a moment then retry with cache-busting
+        setTimeout(() => {
+            if (type === 'pdf') {
+                updatePreview('pdf', fileUrl);
+            } else if (type === 'image') {
+                // Try to determine the actual format or default to jpg
+                const format = fileUrl.includes('.png') ? 'png' : 
+                             fileUrl.includes('.jpeg') ? 'jpeg' : 'jpg';
+                updatePreview(format, fileUrl);
+            } else {
+                // For other types, try to update with the original type
+                updatePreview(type, fileUrl);
+            }
+        }, 1000);
     }
-}
 
 // Setup professional page state management
 function setupPageStateManagement() {
@@ -1557,10 +1601,12 @@ function resetPageToHome() {
     const uploadContainer = document.getElementById('upload-container');
     const fileProcessing = document.getElementById('file-processing');
     const conversionResult = document.getElementById('conversion-result');
+    const conversionGuide = document.getElementById('conversion-guide');
     
     if (uploadContainer) uploadContainer.classList.remove('hidden');
     if (fileProcessing) fileProcessing.classList.add('hidden');
     if (conversionResult) conversionResult.classList.add('hidden');
+    if (conversionGuide) conversionGuide.classList.remove('hidden');
     
     // Only close conversion modal if explicitly called (not from auto-reset)
     // The modal should only be closed by user action or explicit reset
@@ -1600,6 +1646,7 @@ function resetConversion() {
     const conversionModal = document.getElementById('conversion-modal');
     if (conversionModal) {
         conversionModal.classList.add('hidden');
+        conversionModal.classList.remove('show');
     }
     
     // Show upload container and reset its state
@@ -1638,6 +1685,7 @@ function closeConversionModal() {
     const conversionModal = document.getElementById('conversion-modal');
     if (conversionModal) {
         conversionModal.classList.add('hidden');
+        conversionModal.classList.remove('show');
     }
 }
 
@@ -1691,7 +1739,7 @@ function showNotification(message, type = 'info') {
                 right: 20px;
                 z-index: 9999;
                 min-width: 300px;
-                max-width: 500px;
+                max-width: 350px;
                 border-radius: 8px;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
                 animation: notificationSlideIn 0.3s ease-out;
@@ -2050,4 +2098,99 @@ function showConversionSuccessMessage(outputFormat) {
             successMessage.classList.remove('show', 'animate-out');
         }, 300);
     }, 4000);
+}
+
+// Unified Modal Functions
+function showUnifiedModal() {
+    console.log('🎭 showUnifiedModal called');
+    const modal = document.getElementById('unified-conversion-modal');
+    console.log('🔍 Modal element found:', modal);
+    
+    if (modal) {
+        console.log('✅ Modal exists, showing it...');
+        
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+        
+        // Show the modal
+        modal.classList.remove('hidden');
+        modal.classList.add('show');
+        console.log('📱 Modal classes after show:', modal.className);
+        
+        // Ensure processing state is visible and result state is hidden
+        const processingState = document.getElementById('processing-state');
+        const resultState = document.getElementById('result-state');
+        
+        console.log('🔍 Processing state element:', processingState);
+        console.log('🔍 Result state element:', resultState);
+        
+        if (processingState) {
+            processingState.classList.remove('hidden');
+            console.log('📱 Processing state classes:', processingState.className);
+        } else {
+            console.error('❌ Processing state element not found!');
+        }
+        
+        if (resultState) {
+            resultState.classList.add('hidden');
+            resultState.classList.remove('show');
+            console.log('📱 Result state classes:', resultState.className);
+        } else {
+            console.error('❌ Result state element not found!');
+        }
+        
+        console.log('✅ Modal should now be visible');
+    } else {
+        console.error('❌ Modal element not found!');
+    }
+}
+
+function closeUnifiedModal() {
+    const modal = document.getElementById('unified-conversion-modal');
+    if (modal) {
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        modal.classList.add('hidden');
+        modal.classList.remove('show');
+        
+        // Reset modal states
+        const processingState = document.getElementById('processing-state');
+        const resultState = document.getElementById('result-state');
+        
+        if (processingState) {
+            processingState.classList.remove('hidden');
+        }
+        if (resultState) {
+            resultState.classList.add('hidden');
+            resultState.classList.remove('show');
+        }
+    }
+}
+
+function transitionToResultState() {
+    const processingState = document.getElementById('processing-state');
+    const resultState = document.getElementById('result-state');
+    
+    if (processingState && resultState) {
+        // Hide processing state with fade out
+        processingState.style.opacity = '0';
+        processingState.style.transform = 'translateY(-20px)';
+        
+        setTimeout(() => {
+            processingState.classList.add('hidden');
+            
+            // Show result state with fade in
+            resultState.classList.remove('hidden');
+            resultState.style.opacity = '0';
+            resultState.style.transform = 'translateY(20px)';
+            
+            // Trigger animation
+            setTimeout(() => {
+                resultState.style.opacity = '1';
+                resultState.style.transform = 'translateY(0)';
+                resultState.classList.add('show');
+            }, 50);
+        }, 300);
+    }
 }

@@ -728,16 +728,6 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.auth-modal.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.auth-modal.active .auth-container {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-}
-
 /* Micro-interactions */
 .auth-input:focus {
     transform: translateY(-1px);

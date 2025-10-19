@@ -12,14 +12,26 @@
     <title>DocSwap - Free Online File Converter | Convert PDF, Word, Excel & More</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" 
+          onerror="console.warn('Google Fonts failed to load, using system fonts')">
+    <style>
+        /* Fallback fonts in case Google Fonts fail */
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" 
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" 
+          crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="css/icon.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/adsense.css">
     <link rel="icon" href="#" id="favicon">
-    <script src="js/header.js" defer></script>
+    
+    <!-- Google AdSense Auto Ads Script -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1752766479568749"
+         crossorigin="anonymous"></script>
 </head>
 <body>
     <header class="header">
@@ -38,9 +50,11 @@
                 </ul>
             </nav>
             <div class="auth-buttons">
-                <div id="user-profile" class="user-profile">
+                <!-- User profile (shown only when authenticated) -->
+                <div id="user-profile" class="user-profile" style="display: none;">
                     <div class="user-avatar" id="user-avatar">B</div>
-                    <button id="logout-button" class="btn btn-outline">Logout</button>
+                    <span id="user-email" class="user-email"></span>
+                    <button id="logout-button" class="btn btn-outline btn-sm">Sign Out</button>
                 </div>
             </div>
             <div class="language-selector">
@@ -52,6 +66,17 @@
             </div>
         </div>
     </header>
+
+    <!-- Header Banner Ad (728x90 Leaderboard) -->
+    <div class="ad-container header-ad">
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:728px;height:90px"
+             data-ad-client="ca-pub-1752766479568749"
+             data-ad-slot="XXXXXXXXXX"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
 
     <main>
         <section class="hero">
@@ -87,6 +112,17 @@
                     </div>
                     
                     <div class="hero-upload">
+                        <!-- Sidebar Rectangle Ad (300x250 Medium Rectangle) -->
+                        <div class="ad-container sidebar-ad">
+                            <ins class="adsbygoogle"
+                                 style="display:inline-block;width:300px;height:250px"
+                                 data-ad-client="ca-pub-1752766479568749"
+                                 data-ad-slot="XXXXXXXXXX"></ins>
+                            <script>
+                                 (adsbygoogle = window.adsbygoogle || []).push({});
+                            </script>
+                        </div>
+                        
                         <div class="upload-container" id="upload-container">
                 <div class="upload-area" id="drop-area">
                                 <div class="upload-icon">
@@ -132,6 +168,16 @@
                         </select>
                     </div>
                     <button class="btn btn-convert" id="batch-convert-btn">Convert All Files</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Conversion Guide Message -->
+        <section class="conversion-guide" id="conversion-guide">
+            <div class="container">
+                <div class="guide-content">
+                    <h3>📁 Upload a file to start converting</h3>
+                    <p>Choose a file above to see conversion options and start the process.</p>
                 </div>
             </div>
         </section>
@@ -270,16 +316,40 @@
                     </div>
                 </div>
                 
-                <div class="result-actions">
-                    <button class="btn btn-download" id="download-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Download
-                    </button>
-                    <button class="btn btn-secondary" id="new-conversion-btn">New Conversion</button>
+                <!-- In-Content Rectangle Ad (300x250) -->
+                <div class="ad-container content-ad">
+                    <ins class="adsbygoogle"
+                         style="display:inline-block;width:300px;height:250px"
+                         data-ad-client="ca-pub-1752766479568749"
+                         data-ad-slot="XXXXXXXXXX"></ins>
+                    <script>
+                         (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
+                
+                <div class="result-actions-container">
+                    <div class="result-actions">
+                        <button class="btn btn-download" id="download-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download
+                        </button>
+                        <button class="btn btn-secondary" id="new-conversion-btn">New Conversion</button>
+                    </div>
+                    
+                    <!-- High-Value Download Page Ad (Prime Real Estate) -->
+                    <div class="ad-container download-ad">
+                        <ins class="adsbygoogle"
+                             style="display:inline-block;width:300px;height:250px"
+                             data-ad-client="ca-pub-1752766479568749"
+                             data-ad-slot="XXXXXXXXXX"></ins>
+                        <script>
+                             (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
                 </div>
                 
                 <div class="share-link">
@@ -302,53 +372,7 @@
             </div>
         </section>
 
-        <!-- Centered Conversion Complete Modal -->
-        <div class="conversion-modal hidden" id="conversion-modal">
-            <div class="conversion-modal-backdrop"></div>
-            <div class="conversion-modal-container">
-                <div class="conversion-modal-content">
-                    <div class="modal-header">
-                        <h3>Conversion Complete!</h3>
-                        <p>Your file has been successfully converted. Preview it below or download it now.</p>
-                    </div>
-                    
-                    <div class="modal-preview">
-                        <div class="modal-preview-container" id="modal-preview-container">
-                            <!-- Preview will be inserted here -->
-                        </div>
-                    </div>
-                    
-                    <div class="modal-validity-info">
-                        <p class="validity-text">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            Your file will be available for 24 hours at this link
-                        </p>
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button class="btn btn-download" id="modal-download-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download
-                        </button>
-                        <button class="btn btn-secondary" id="modal-new-conversion-btn">New Conversion</button>
-                    </div>
-                    
-                    <button class="modal-close" id="modal-close-btn" aria-label="Close modal">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
+
 
         <section class="features" id="features">
             <div class="container">
@@ -400,6 +424,26 @@
             </div>
         </section>
 
+        <!-- Native-Style Ad Section (Recommended Tools) -->
+        <section class="recommended-tools">
+            <div class="container">
+                <h2>Recommended Tools</h2>
+                <div class="tools-grid">
+                    <div class="tool-card native-ad">
+                        <!-- Native Ad that blends with content -->
+                        <ins class="adsbygoogle"
+                             style="display:block"
+                             data-ad-format="fluid"
+                             data-ad-layout-key="-6t+ed+2i-1n-4w"
+                             data-ad-client="ca-pub-1752766479568749"
+                             data-ad-slot="XXXXXXXXXX"></ins>
+                        <script>
+                             (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+                </div>
+            </div>
+        </section>
 
     </main>
 
@@ -418,10 +462,8 @@
             </div>
             
             <div class="auth-content">
-                <!-- Warning Message -->
-                <div class="auth-message">
-                    Authentication service is temporarily unavailable. Please try again later.
-                </div>
+                <!-- Success/Error Messages -->
+                <div class="auth-message" id="authMessage" style="display: none;"></div>
 
                 <!-- Email Form -->
                 <form class="auth-form" id="authForm">
@@ -486,6 +528,17 @@
         </div>
     </div>
 
+    <!-- Footer Banner Ad (728x90 Leaderboard) -->
+    <div class="ad-container footer-ad">
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:728px;height:90px"
+             data-ad-client="ca-pub-1752766479568749"
+             data-ad-slot="XXXXXXXXXX"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
@@ -509,60 +562,113 @@
         </div>
     </div>
 
-    <!-- Enhanced Loading overlay -->
-    <div class="loading-overlay hidden" id="loading-overlay">
-        <div class="loading-content">
-            <div class="loading-animation">
-                <div class="file-icon-animation">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
+    <!-- Unified Conversion Modal with Processing and Result States -->
+    <div class="unified-conversion-modal hidden" id="unified-conversion-modal">
+        <div class="unified-modal-backdrop"></div>
+        <div class="unified-modal-container">
+            <!-- Processing State -->
+            <div class="processing-state" id="processing-state">
+                <div class="processing-animation">
+                    <div class="file-icon-animation">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
+                    <div class="conversion-arrow">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </div>
+                    <div class="output-icon-animation">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </div>
                 </div>
-                <div class="conversion-arrow">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                        <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
+                
+                <div class="processing-info">
+                    <h3 id="processing-title">Converting your file...</h3>
+                    <p id="processing-text">Preparing conversion...</p>
+                    <div class="processing-details">
+                        <span id="processing-step">Step 1 of 4</span>
+                        <span id="processing-time">Estimated time: 30s</span>
+                    </div>
                 </div>
-                <div class="output-icon-animation">
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
+                
+                <div class="progress-container">
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progress-bar"></div>
+                        <div class="progress-glow"></div>
+                    </div>
+                    <div class="progress-percentage" id="progress-percentage">0%</div>
+                </div>
+                
+                <div class="processing-tips">
+                    <div class="tip-icon">💡</div>
+                    <p id="processing-tip">Did you know? DocSwap supports over 50 file formats!</p>
                 </div>
             </div>
-            
-            <div class="loading-info">
-                <h3 id="loading-title">Converting your file...</h3>
-                <p id="loading-text">Preparing conversion...</p>
-                <div class="loading-details">
-                    <span id="loading-step">Step 1 of 4</span>
-                    <span id="loading-time">Estimated time: 30s</span>
+
+            <!-- Result State -->
+            <div class="result-state hidden" id="result-state">
+                <div class="result-header">
+                    <div class="success-animation">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <path d="M20 6L9 17l-5-5"></path>
+                        </svg>
+                    </div>
+                    <h3>Conversion Complete!</h3>
+                    <p>Your file has been successfully converted. Preview it below or download it now.</p>
                 </div>
-            </div>
-            
-            <div class="progress-container">
-                <div class="progress-track">
-                    <div class="progress-bar" id="progress-bar"></div>
-                    <div class="progress-glow"></div>
+                
+                <div class="result-preview">
+                    <div class="result-preview-container" id="result-preview-container">
+                        <!-- Preview will be inserted here -->
+                    </div>
                 </div>
-                <div class="progress-percentage" id="progress-percentage">0%</div>
-            </div>
-            
-            <div class="loading-tips">
-                <div class="tip-icon">💡</div>
-                <p id="loading-tip">Did you know? DocSwap supports over 50 file formats!</p>
+                
+                <div class="result-validity-info">
+                    <p class="validity-text">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        Your file will be available for 24 hours at this link
+                    </p>
+                </div>
+                
+                <div class="result-actions">
+                    <button class="btn btn-download" id="result-download-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download
+                    </button>
+                    <button class="btn btn-secondary" id="result-new-conversion-btn">New Conversion</button>
+                </div>
+                
+                <button class="unified-modal-close" id="unified-modal-close-btn" aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="js/supabase-config.js?v=2"></script>
-    <script src="js/main.js?v=2"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/translations.js"></script>
-    <script src="js/icon.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" 
+            onerror="console.error('Failed to load Supabase from CDN'); this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'"></script>
+    <script src="js/supabase-config.js?v=9"></script>
+    <script src="js/auth.js?v=9"></script>
+    <script src="js/main.js?v=13"></script>
+    <script src="js/translations.js?v=6"></script>
+    <script src="js/icon.js?v=6"></script>
     <script>
         // Initialize authentication when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {

@@ -30,6 +30,9 @@
     gap: var(--spacing-sm);
 }
 
+/* Sign-in button container */
+
+
 /* User profile when logged in */
 .user-profile {
     display: flex;
@@ -62,6 +65,24 @@
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     filter: brightness(1.1);
+}
+
+/* User email display */
+.user-email {
+    font-size: 14px;
+    color: var(--text-color);
+    font-weight: 500;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Sign out button */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 6px;
 }
 
 /* Language selector positioning */
