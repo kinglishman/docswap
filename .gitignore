@@ -220,3 +220,4 @@ dist/
 *.tar.gz
 *.rar
 *.7z
+.vercel

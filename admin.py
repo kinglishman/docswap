@@ -29,15 +29,23 @@ admin_app = Blueprint('admin', __name__, template_folder='admin_templates')
 # Configure logging
 import os
 log_dir = os.path.join(os.path.dirname(__file__), 'logs')
-os.makedirs(log_dir, exist_ok=True)
+
+# Try to create logs directory and set up file logging, fallback to console only
+handlers = [logging.StreamHandler()]
+try:
+    os.makedirs(log_dir, exist_ok=True)
+    # Test if we can write to the log file
+    log_file = os.path.join(log_dir, 'admin.log')
+    with open(log_file, 'a') as f:
+        f.write('')  # Test write
+    handlers.append(logging.FileHandler(log_file))
+except (PermissionError, OSError) as e:
+    print(f"Warning: Could not set up file logging: {e}. Using console logging only.")
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(log_dir, 'admin.log')),
-        logging.StreamHandler()
-    ]
+    handlers=handlers
 )
 logger = logging.getLogger(__name__)
 

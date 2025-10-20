@@ -1,8 +1,0 @@
-{
-  "timestamp": "2025-09-18T21:59:04.657744",
-  "supabase_url": "https://qzuwonueyvouvrhiwcob.supabase.co",
-  "environment_check": "Passed",
-  "connection_check": "Passed",
-  "providers_check": "Failed",
-  "server_check": "Passed"
-}

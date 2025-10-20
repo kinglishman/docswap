@@ -1,0 +1,9 @@
+# ads.txt file for DocSwap - www.mydocswap.com
+# This file is required by Google AdSense for publisher verification
+# Replace "pub-XXXXXXXXXXXXXXXXX" with your actual AdSense publisher ID
+
+# Google AdSense
+google.com, pub-1752766479568749, DIRECT, f08c47fec0942fa0
+
+# Additional ad networks can be added here in the future
+# Format: domain, publisher_id, relationship, certification_authority_id

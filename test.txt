@@ -1,9 +1,0 @@
-This is a test file for conversion testing.
-It contains some sample text that can be converted to different formats.
-
-Testing the DocSwap conversion functionality:
-- Text to PDF conversion
-- Text to DOCX conversion
-- And other supported formats
-
-This file will help verify that the conversion system is working properly.

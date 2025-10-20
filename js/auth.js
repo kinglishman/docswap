@@ -6,26 +6,41 @@ class SeamlessAuth {
         this.isSignUp = false;
         this.isLoading = false;
         this.supabase = null;
+        this.conversionInProgress = false;
         this.init();
     }
 
     async init() {
+        console.log('🚀 Initializing SeamlessAuth...');
+        
         // Wait for Supabase to be ready
         await this.waitForSupabase();
         this.setupModal();
         this.setupEventListeners();
         this.setupAuthStateListener();
         
-        // Check if user is already authenticated
-        const { data: { user } } = await this.supabase.auth.getUser();
-        if (user) {
-            // User is already authenticated, update UI
-            this.handleAuthSuccess(user);
-        } else {
-            // User is not authenticated, show modal automatically
-            this.openModal(false);
-            // Disable background interaction until authentication
-            this.disableUploadFunctionality();
+        try {
+            // Check if user is already authenticated
+            const { data: { user }, error } = await this.supabase.auth.getUser();
+            console.log('👤 User check result:', { user: !!user, error });
+            
+            if (user && !error) {
+                // User is already authenticated, update UI
+                console.log('✅ User is authenticated, updating UI');
+                this.handleAuthSuccess(user);
+            } else {
+                // User is not authenticated, update UI but don't show modal automatically
+                console.log('🔐 User not authenticated, updating UI');
+                this.updateUIForUnauthenticatedUser();
+                
+                // Don't open auth modal automatically - let user initiate when needed
+                console.log('📱 Auth modal ready for user-initiated access');
+            }
+        } catch (error) {
+            console.error('❌ Error during auth initialization:', error);
+            // Update UI for unauthenticated state but don't force modal
+            this.updateUIForUnauthenticatedUser();
+            console.log('📱 Auth modal ready for user-initiated access (fallback)');
         }
     }
 
@@ -58,9 +73,22 @@ class SeamlessAuth {
     setupModal() {
         this.modal = document.getElementById('authModal');
         if (!this.modal) {
-            console.error('Auth modal not found');
+            console.error('❌ Auth modal element not found in DOM');
             return;
         }
+        
+        console.log('✅ Auth modal element found:', this.modal);
+        
+        // Ensure modal starts hidden
+        this.modal.classList.remove('show');
+        
+        // Add click outside to close (but only if user is authenticated)
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                // Only allow closing if user is authenticated
+                this.checkAndCloseModal();
+            }
+        });
     }
 
     setupEventListeners() {
@@ -118,7 +146,7 @@ class SeamlessAuth {
 
         // Prevent ESC key from closing modal when not authenticated
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal?.classList.contains('active')) {
+            if (e.key === 'Escape' && this.modal?.classList.contains('show')) {
                 // Only allow closing if user is authenticated
                 if (this.supabase?.auth?.getUser && this.supabase.auth.getUser()) {
                     this.closeModal();
@@ -143,25 +171,51 @@ class SeamlessAuth {
     }
 
     openModal(isSignUp = false) {
+        console.log('🔓 Opening auth modal, isSignUp:', isSignUp);
+        
+        if (!this.modal) {
+            console.error('❌ Modal element not found!');
+            return;
+        }
+        
         this.isSignUp = isSignUp;
         this.updateModalContent();
-        this.modal?.classList.add('active');
+        
+        // Ensure modal is visible
+        this.modal.classList.add('show');
         document.body.style.overflow = 'hidden';
+        
+        console.log('✅ Modal should now be visible with class:', this.modal.className);
         
         // Focus on email input
         setTimeout(() => {
-            this.modal?.querySelector('#authEmail')?.focus();
+            const emailInput = this.modal.querySelector('#authEmail');
+            if (emailInput) {
+                emailInput.focus();
+                console.log('📧 Email input focused');
+            }
         }, 300);
     }
 
-    closeModal() {
-        // Only allow closing if user is authenticated
-        if (this.supabase?.auth?.getUser && this.supabase.auth.getUser()) {
-            this.modal?.classList.remove('active');
-            document.body.style.overflow = '';
-            this.clearForm();
-            this.clearMessages();
+    async checkAndCloseModal() {
+        try {
+            const { data: { user } } = await this.supabase.auth.getUser();
+            if (user) {
+                this.closeModal();
+            } else {
+                console.log('🔒 Cannot close modal - user not authenticated');
+            }
+        } catch (error) {
+            console.log('🔒 Cannot close modal - authentication check failed');
         }
+    }
+
+    closeModal() {
+        console.log('🔐 Closing auth modal');
+        this.modal?.classList.remove('show');
+        document.body.style.overflow = '';
+        this.clearForm();
+        this.clearMessages();
     }
 
     toggleMode() {
@@ -317,12 +371,69 @@ class SeamlessAuth {
         setTimeout(() => {
             this.forceCloseModal();
             this.updateUIForAuthenticatedUser(user);
+            this.processPendingConversion();
         }, 1000);
+    }
+
+    processPendingConversion() {
+        if (window.pendingConversion) {
+            console.log('🔄 Processing pending conversion after authentication');
+            
+            // Restore the conversion options
+            const pending = window.pendingConversion;
+            
+            // Set the file back as current file
+            window.currentFile = pending.file;
+            
+            // Restore form values
+            if (document.getElementById('output-format')) {
+                document.getElementById('output-format').value = pending.outputFormat;
+            }
+            if (document.getElementById('ocr-option')) {
+                document.getElementById('ocr-option').checked = pending.ocrEnabled;
+            }
+            if (document.getElementById('compression-level')) {
+                document.getElementById('compression-level').value = pending.compressionLevel;
+            }
+            if (document.getElementById('image-quality')) {
+                document.getElementById('image-quality').value = pending.imageQuality;
+            }
+            if (document.getElementById('image-resolution')) {
+                document.getElementById('image-resolution').value = pending.imageResolution;
+            }
+            if (document.getElementById('preserve-formatting')) {
+                document.getElementById('preserve-formatting').checked = pending.preserveFormatting;
+            }
+            if (document.getElementById('text-encoding')) {
+                document.getElementById('text-encoding').value = pending.textEncoding;
+            }
+            
+            // Store conversion options
+            window.conversionOptions = {
+                outputFormat: pending.outputFormat,
+                ocrEnabled: pending.ocrEnabled,
+                compressionLevel: pending.compressionLevel,
+                imageQuality: pending.imageQuality,
+                imageResolution: pending.imageResolution,
+                preserveFormatting: pending.preserveFormatting,
+                textEncoding: pending.textEncoding
+            };
+            
+            // Clear pending conversion
+            window.pendingConversion = null;
+            
+            // Proceed with conversion
+            if (typeof showConversionResult === 'function') {
+                showConversionResult(pending.outputFormat);
+            } else {
+                console.error('showConversionResult function not available');
+            }
+        }
     }
 
     forceCloseModal() {
         // Force close modal regardless of authentication state
-        this.modal?.classList.remove('active');
+        this.modal?.classList.remove('show');
         document.body.style.overflow = '';
         this.clearForm();
         this.clearMessages();
@@ -332,23 +443,26 @@ class SeamlessAuth {
         console.log('User signed out');
         this.updateUIForUnauthenticatedUser();
         
-        // Automatically open login modal after logout
+        // Don't show auth modal if conversion is in progress
+        if (this.conversionInProgress) {
+            console.log('🔄 Conversion in progress, delaying auth modal');
+            return;
+        }
+        
+        // Show authentication modal after sign out to prevent unauthorized access
         setTimeout(() => {
-            this.openModal(false); // Open in sign-in mode
+            // Double-check conversion status before opening modal
+            if (!this.conversionInProgress) {
+                this.openModal(false); // Open in sign-in mode
+            }
         }, 500); // Small delay to ensure UI updates are complete
     }
 
     updateUIForAuthenticatedUser(user) {
-        // Hide auth buttons
-        const signInBtn = document.getElementById('sign-in-button');
-        const signUpBtn = document.getElementById('sign-up-button');
-        if (signInBtn) signInBtn.style.display = 'none';
-        if (signUpBtn) signUpBtn.style.display = 'none';
-
         // Show user profile
         const userProfile = document.getElementById('user-profile');
         if (userProfile) {
-            userProfile.classList.remove('hidden');
+            userProfile.style.display = 'flex';
             
             // Set user avatar with first letter of email and dynamic styling
             const userAvatar = document.getElementById('user-avatar');
@@ -388,20 +502,15 @@ class SeamlessAuth {
     }
 
     updateUIForUnauthenticatedUser() {
-        // Show auth buttons
-        const signInBtn = document.getElementById('sign-in-button');
-        const signUpBtn = document.getElementById('sign-up-button');
-        if (signInBtn) signInBtn.style.display = 'inline-block';
-        if (signUpBtn) signUpBtn.style.display = 'inline-block';
-
         // Hide user profile
         const userProfile = document.getElementById('user-profile');
         if (userProfile) {
-            userProfile.classList.add('hidden');
+            userProfile.style.display = 'none';
         }
-
-        // Disable upload functionality
-        this.disableUploadFunctionality();
+        
+        // Keep upload functionality enabled for all users since we have public endpoints
+        // Users can convert files without authentication using /api/upload/public and /api/convert/public
+        this.enableUploadFunctionality();
     }
 
     enableUploadFunctionality() {
@@ -555,15 +664,27 @@ class SeamlessAuth {
         try {
             const { error } = await this.supabase.auth.signOut();
             if (error) throw error;
+            console.log('✅ User signed out successfully');
         } catch (error) {
-            console.error('Sign out error:', error);
+            console.error('❌ Error signing out:', error);
         }
+    }
+
+    // Methods to control conversion state
+    setConversionInProgress(inProgress) {
+        this.conversionInProgress = inProgress;
+        console.log(`🔄 Conversion state: ${inProgress ? 'IN PROGRESS' : 'COMPLETED'}`);
+    }
+
+    isConversionInProgress() {
+        return this.conversionInProgress;
     }
 }
 
-// Initialize when DOM is ready
+// Initialize auth when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.seamlessAuth = new SeamlessAuth();
+    // Initialize auth system
+    window.auth = new SeamlessAuth();
 });
 
 // Export for global access

@@ -221,7 +221,6 @@
 .upload-container, 
 .conversion-options, 
 .result-actions,
-.auth-modal,
 .unified-conversion-modal {
     position: relative;
     z-index: 10;

@@ -35,6 +35,14 @@ try:
 except ImportError:
     PDF2DOCX_AVAILABLE = False
 
+try:
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import inch
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+
 from .base_engine import ConversionEngine, ConversionError
 
 logger = logging.getLogger(__name__)
@@ -81,8 +89,6 @@ class DocumentEngine(ConversionEngine):
         # DOCX conversions
         if DOCX_AVAILABLE:
             self.conversion_matrix['docx'] = ['txt', 'html']
-            if PDF_AVAILABLE:
-                self.conversion_matrix['docx'].append('pdf')
         
         # XLSX conversions
         if XLSX_AVAILABLE:
@@ -94,6 +100,8 @@ class DocumentEngine(ConversionEngine):
         self.conversion_matrix['txt'] = ['html']
         if DOCX_AVAILABLE:
             self.conversion_matrix['txt'].append('docx')
+        if REPORTLAB_AVAILABLE:
+            self.conversion_matrix['txt'].append('pdf')
         
         self.conversion_matrix['html'] = ['txt']
         if DOCX_AVAILABLE:
@@ -271,6 +279,67 @@ class DocumentEngine(ConversionEngine):
             
         except Exception as e:
             logger.error(f"Text to DOCX conversion failed: {str(e)}")
+            return False
+    
+    def _convert_txt_to_pdf(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
+        """Convert text to PDF."""
+        if not REPORTLAB_AVAILABLE:
+            return False
+        
+        try:
+            # Read the text file
+            with open(input_path, 'r', encoding='utf-8') as input_file:
+                content = input_file.read()
+            
+            # Create PDF
+            c = canvas.Canvas(output_path, pagesize=letter)
+            width, height = letter
+            
+            # Set up text formatting
+            margin = 72  # 1 inch margin
+            line_height = 14
+            max_width = width - 2 * margin
+            y_position = height - margin
+            
+            # Split content into lines
+            lines = content.split('\n')
+            
+            for line in lines:
+                # Handle long lines by wrapping
+                if c.stringWidth(line) > max_width:
+                    words = line.split(' ')
+                    current_line = ''
+                    
+                    for word in words:
+                        test_line = current_line + (' ' if current_line else '') + word
+                        if c.stringWidth(test_line) <= max_width:
+                            current_line = test_line
+                        else:
+                            if current_line:
+                                c.drawString(margin, y_position, current_line)
+                                y_position -= line_height
+                                if y_position < margin:
+                                    c.showPage()
+                                    y_position = height - margin
+                            current_line = word
+                    
+                    if current_line:
+                        c.drawString(margin, y_position, current_line)
+                        y_position -= line_height
+                else:
+                    c.drawString(margin, y_position, line)
+                    y_position -= line_height
+                
+                # Check if we need a new page
+                if y_position < margin:
+                    c.showPage()
+                    y_position = height - margin
+            
+            c.save()
+            return True
+            
+        except Exception as e:
+            logger.error(f"Text to PDF conversion failed: {str(e)}")
             return False
     
     def _convert_xlsx_to_csv(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:

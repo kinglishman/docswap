@@ -1,7 +1,12 @@
 /* DocSwap - Supabase Configuration */
 
-// Configuration
-const API_BASE_URL = 'http://localhost:5002';
+// Configuration - Auto-detect environment
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5001'  // Local development - Flask backend
+    : window.location.origin;  // Production - same origin as frontend
+
+// Make API_BASE_URL globally available
+window.API_BASE_URL = API_BASE_URL;
 
 // Global configuration object
 window.supabaseConfig = {
@@ -14,13 +19,21 @@ let supabase = null;
 
 // Check if Supabase is available
 async function waitForSupabaseScript() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds timeout
+        
         const checkSupabase = () => {
+            attempts++;
+            
             if (window.supabase && typeof window.supabase.createClient === 'function') {
                 console.log('[CONFIG DEBUG] ✅ Supabase library is available');
                 resolve();
+            } else if (attempts >= maxAttempts) {
+                console.error('[CONFIG DEBUG] ❌ Timeout waiting for Supabase library');
+                reject(new Error('Supabase library failed to load'));
             } else {
-                console.log('[CONFIG DEBUG] Waiting for Supabase library...');
+                console.log(`[CONFIG DEBUG] Waiting for Supabase library... (${attempts}/${maxAttempts})`);
                 setTimeout(checkSupabase, 100);
             }
         };
@@ -34,9 +47,20 @@ async function initializeConfig() {
         console.log(`[CONFIG DEBUG] [${new Date().toISOString()}] Starting configuration initialization...`);
         
         // Wait for Supabase library to be available
-        await waitForSupabaseScript();
-        console.log('[CONFIG DEBUG] Supabase library loaded');
-        console.log('[CONFIG DEBUG] Current window.supabase before init:', typeof window.supabase);
+        try {
+            await waitForSupabaseScript();
+            console.log('[CONFIG DEBUG] Supabase library loaded');
+            console.log('[CONFIG DEBUG] Current window.supabase before init:', typeof window.supabase);
+        } catch (error) {
+            console.error('[CONFIG DEBUG] ❌ Failed to load Supabase library:', error);
+            // Show user-friendly error message
+            const authMessage = document.querySelector('.auth-message');
+            if (authMessage) {
+                authMessage.textContent = 'Authentication service is temporarily unavailable. Please refresh the page.';
+                authMessage.style.display = 'block';
+            }
+            return; // Exit early if Supabase fails to load
+        }
         
         // Try to fetch configuration from backend API
         try {
@@ -56,11 +80,8 @@ async function initializeConfig() {
             }
         } catch (apiError) {
             console.error('[CONFIG DEBUG] API Error details:', apiError);
-            console.warn('[CONFIG DEBUG] Backend API not available, using fallback configuration:', apiError.message);
-            // Use direct configuration for development
-            console.log('[CONFIG DEBUG] Using direct Supabase configuration');
-            window.supabaseConfig.SUPABASE_URL = 'https://qzuwonueyvouvrhiwcob.supabase.co';
-            window.supabaseConfig.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6dXdvbnVleXZvdXZyaGl3Y29iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwNzM2ODgsImV4cCI6MjA2MjY0OTY4OH0.hRGTJ4oPFs6lJ4O17oeRbFOMYAgMxyMM2DSjSd5_W00';
+            console.error('[CONFIG DEBUG] Backend API not available - cannot proceed without real credentials');
+            throw new Error(`Backend API unavailable: ${apiError.message}`);
         }
         
         console.log('[CONFIG DEBUG] Final config:', window.supabaseConfig);
@@ -97,86 +118,9 @@ async function initializeConfig() {
         return true;
         
     } catch (error) {
-        console.error('❌ Failed to initialize REAL Supabase configuration:', error);
-        console.warn('⚠️  FALLING BACK TO MOCK SUPABASE - Your real keys are not being used!');
-        
-        // Set up configuration anyway for UI testing
-        window.supabaseConfig.SUPABASE_URL = 'https://qzuwonueyvouvrhiwcob.supabase.co';
-        window.supabaseConfig.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6dXdvbnVleXZvdXZyaGl3Y29iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwNzM2ODgsImV4cCI6MjA2MjY0OTY4OH0.hRGTJ4oPFs6lJ4O17oeRbFOMYAgMxyMM2DSjSd5_W00';
-        
-        // Create a mock Supabase object for testing
-        let authStateCallback = null;
-        let mockSession = null; // Track mock session state
-        
-        window.supabase = {
-            createClient: (url, key) => ({
-                auth: {
-                    onAuthStateChange: (callback) => {
-                        console.log('[MOCK DEBUG] Auth state change listener set up');
-                        authStateCallback = callback;
-                        return { data: { subscription: { unsubscribe: () => {} } } };
-                    },
-                    signInWithPassword: async (credentials) => {
-                        console.log('[MOCK DEBUG] Sign in with password', credentials);
-                        const user = { email: credentials.email, id: 'mock-user-id' };
-                        const session = { access_token: 'mock-token', user: user };
-                        
-                        // Store the mock session
-                        mockSession = session;
-                        
-                        // Simulate successful sign-in by triggering auth state change
-                        if (authStateCallback) {
-                            setTimeout(() => {
-                                console.log('[MOCK DEBUG] Triggering SIGNED_IN event');
-                                authStateCallback('SIGNED_IN', session);
-                            }, 100);
-                        }
-                        
-                        return { data: { user: user, session: session }, error: null };
-                    },
-                    signUp: async (credentials) => {
-                        console.log('[MOCK DEBUG] Sign up', credentials);
-                        return { data: { user: { email: credentials.email }, session: null }, error: null };
-                    },
-                    signInWithOAuth: async (provider) => {
-                        console.log('[MOCK DEBUG] Sign in with OAuth', provider);
-                        return { data: { url: 'mock-oauth-url' }, error: null };
-                    },
-                    signOut: async () => {
-                        console.log('[MOCK DEBUG] Sign out');
-                        
-                        // Clear the mock session
-                        mockSession = null;
-                        
-                        // Simulate successful sign-out by triggering auth state change
-                        if (authStateCallback) {
-                            setTimeout(() => {
-                                console.log('[MOCK DEBUG] Triggering SIGNED_OUT event');
-                                authStateCallback('SIGNED_OUT', null);
-                            }, 100);
-                        }
-                        
-                        return { error: null };
-                    },
-                    getUser: async () => {
-                        console.log('[MOCK DEBUG] Get user - returning:', mockSession?.user || null);
-                        return { data: { user: mockSession?.user || null }, error: null };
-                    },
-                    getSession: async () => {
-                        console.log('[MOCK DEBUG] Get session - returning:', mockSession ? 'session exists' : 'no session');
-                        return { data: { session: mockSession }, error: null };
-                    }
-                }
-            })
-        };
-        
-        // Initialize mock client
-        supabase = window.supabase.createClient(window.supabaseConfig.SUPABASE_URL, window.supabaseConfig.SUPABASE_ANON_KEY);
-        window.supabase = supabase;
-        
-        console.log('🔧 Configuration set up in fallback mode with MOCK Supabase');
-        console.log('⚠️  WARNING: Using MOCK authentication - real Supabase features unavailable!');
-        return true; // Indicate success with fallback
+        console.error('❌ Failed to initialize Supabase configuration:', error);
+        console.error('❌ Cannot proceed without valid Supabase credentials from backend API');
+        throw error; // Re-throw the error to prevent app from running with invalid config
     }
 }
 

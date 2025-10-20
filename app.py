@@ -18,9 +18,27 @@ from flask_limiter.util import get_remote_address
 import logging
 import threading
 import schedule
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Load environment variables
 load_dotenv()
+
+# =============================================================================
+# UNIFIED PRODUCTION CONFIGURATION
+# =============================================================================
+# This app.py serves as the single unified production build for DocSwap
+# It supports deployment to multiple servers:
+# - mydocswap.com (primary domain)
+# - 31.97.193.96 (backup/development server)
+# 
+# The app includes:
+# - Enhanced conversion system with intelligent fallback
+# - Comprehensive error handling and logging
+# - Security headers and rate limiting
+# - Multi-server CORS support
+# =============================================================================
 
 # Enhanced conversion system
 try:
@@ -69,8 +87,9 @@ app.start_time = time.time()
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
 app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_FILE_SIZE', 104857600))  # 100MB default
 
-# CORS configuration
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5000,http://localhost:8000,http://localhost:8080,http://127.0.0.1:8000').split(',')
+# CORS configuration - Unified for all deployment targets
+default_origins = 'https://mydocswap.com,https://www.mydocswap.com,http://31.97.193.96:8000,https://31.97.193.96:8000,http://localhost:8000,http://127.0.0.1:8000'
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', default_origins).split(',')
 CORS(app, origins=allowed_origins)
 
 # Security headers middleware
@@ -90,17 +109,21 @@ def add_security_headers(response):
     if request.is_secure:
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
-    # Content Security Policy
+    # Content Security Policy - Comprehensive configuration for all external resources
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "img-src 'self' data: blob:; "
-        "font-src 'self'; "
-        "connect-src 'self'; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self'"
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self' *.supabase.co qzuwonueyvouvrhiwcob.supabase.co; "
+        "media-src 'self'; "
+        "object-src 'none'; "
+        "child-src 'none'; "
+        "worker-src 'none'; "
+        "frame-ancestors 'self'; "
+        "form-action 'self'; "
+        "base-uri 'self'"
     )
     response.headers['Content-Security-Policy'] = csp
     
@@ -180,8 +203,71 @@ def get_remote_address():
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# Session storage (in-memory for demo)
-sessions = {}
+# Session storage directory
+SESSIONS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
+os.makedirs(SESSIONS_FOLDER, exist_ok=True)
+
+# Persistent session storage class
+class PersistentSessionStorage:
+    def __init__(self, sessions_folder):
+        self.sessions_folder = sessions_folder
+        
+    def _get_session_file(self, session_id):
+        return os.path.join(self.sessions_folder, f"{session_id}.json")
+    
+    def get(self, session_id, default=None):
+        session_file = self._get_session_file(session_id)
+        if os.path.exists(session_file):
+            try:
+                with open(session_file, 'r') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load session {session_id}: {e}")
+                return default
+        return default
+    
+    def __getitem__(self, session_id):
+        session = self.get(session_id)
+        if session is None:
+            raise KeyError(session_id)
+        return session
+    
+    def __setitem__(self, session_id, session_data):
+        session_file = self._get_session_file(session_id)
+        try:
+            with open(session_file, 'w') as f:
+                json.dump(session_data, f, indent=2)
+        except IOError as e:
+            logger.error(f"Failed to save session {session_id}: {e}")
+    
+    def __contains__(self, session_id):
+        return os.path.exists(self._get_session_file(session_id))
+    
+    def __delitem__(self, session_id):
+        session_file = self._get_session_file(session_id)
+        if os.path.exists(session_file):
+            try:
+                os.remove(session_file)
+            except IOError as e:
+                logger.warning(f"Failed to delete session {session_id}: {e}")
+    
+    def keys(self):
+        """Return all session IDs"""
+        session_files = []
+        for filename in os.listdir(self.sessions_folder):
+            if filename.endswith('.json'):
+                session_files.append(filename[:-5])  # Remove .json extension
+        return session_files
+    
+    def items(self):
+        """Return all session items"""
+        for session_id in self.keys():
+            session_data = self.get(session_id)
+            if session_data is not None:
+                yield session_id, session_data
+
+# Initialize persistent session storage
+sessions = PersistentSessionStorage(SESSIONS_FOLDER)
 
 # Initialize enhanced conversion manager
 if conversion_system_available and ConversionManager:
@@ -229,7 +315,7 @@ def validate_file_content(file_path, expected_extension):
     """Validate file content matches expected type"""
     if not MAGIC_AVAILABLE:
         # python-magic is not available, skip content validation
-        return True
+        return {'valid': True}
         
     try:
         mime = magic.Magic(mime=True)
@@ -247,13 +333,13 @@ def validate_file_content(file_path, expected_extension):
         
         expected_mime = mime_map.get(expected_extension.lower())
         if expected_mime and not file_mime.startswith(expected_mime.split('/')[0]):
-            return False
+            return {'valid': False, 'error': f'File content does not match expected type {expected_extension}'}
             
     except Exception as e:
         logger.warning(f"File content validation failed: {str(e)}")
-        return False
+        return {'valid': False, 'error': f'File validation error: {str(e)}'}
     
-    return True
+    return {'valid': True}
 
 def get_file_extension(filename):
     """Get file extension safely"""
@@ -1016,9 +1102,121 @@ cleanup_thread.start()
 def index():
     return app.send_static_file('index.html')
 
+@app.route('/api/upload/public', methods=['POST'])
+@limiter.limit("15 per minute")
+def upload_file_public():
+    """Public upload endpoint without authentication for frontend use"""
+    try:
+        # Check if file is in request
+        if 'file' not in request.files:
+            logger.warning("Upload attempt without file")
+            return jsonify({'error': 'No file part'}), 400
+        
+        file = request.files['file']
+        
+        # Check if file is selected
+        if not file or file.filename == '':
+            logger.warning("Upload attempt with empty filename")
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Sanitize filename
+        original_filename = file.filename
+        sanitized_filename = sanitize_filename(original_filename)
+        
+        if not sanitized_filename:
+            logger.warning(f"Invalid filename: {original_filename}")
+            return jsonify({'error': 'Invalid filename'}), 400
+        
+        # Check if file type is allowed
+        if not allowed_file(sanitized_filename):
+            logger.warning(f"Unsupported file type: {sanitized_filename}")
+            return jsonify({'error': 'File type not supported'}), 400
+        
+        # Check file size
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        if file_size == 0:
+            logger.warning("Empty file upload attempt")
+            return jsonify({'error': 'File is empty'}), 400
+        
+        if file_size > MAX_FILE_SIZE:
+            logger.warning(f"File too large: {file_size} bytes")
+            return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
+        
+        # Get session ID from form data or create new session
+        session_id = request.form.get('sessionId')
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            sessions[session_id] = {
+                'created_at': time.time(),
+                'files': {}
+            }
+            logger.info(f"Created new public session: {session_id}")
+        elif session_id not in sessions:
+            # Create session if it doesn't exist
+            sessions[session_id] = {
+                'created_at': time.time(),
+                'files': {}
+            }
+            logger.info(f"Created missing public session: {session_id}")
+        
+        # Generate unique filename
+        file_extension = get_file_extension(sanitized_filename)
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+        
+        # Save file
+        file.save(file_path)
+        
+        # Validate file content
+        validation_result = validate_file_content(file_path, file_extension)
+        if not validation_result['valid']:
+            # Remove invalid file
+            try:
+                os.remove(file_path)
+            except:
+                pass
+            logger.warning(f"Invalid file content: {validation_result['error']}")
+            return jsonify({'error': validation_result['error']}), 400
+        
+        # Generate file ID
+        file_id = str(uuid.uuid4())
+        
+        # Store file info in session
+        session = sessions[session_id]
+        session['files'][file_id] = {
+            'path': file_path,
+            'original_name': original_filename,
+            'size': file_size,
+            'upload_time': time.time(),
+            'type': 'input'
+        }
+        # Explicitly save the session to trigger persistence
+        sessions[session_id] = session
+        
+        logger.info(f"Public file uploaded successfully: {file_id} ({original_filename})")
+        
+        return jsonify({
+            'success': True,
+            'fileId': file_id,
+            'sessionId': session_id,
+            'filename': original_filename,
+            'size': file_size
+        })
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in public upload: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
 @app.route('/api/upload', methods=['POST'])
 @limiter.limit("10 per minute")
 def upload_file():
+    # Verify user authentication
+    user_data = verify_supabase_token(request)
+    if not user_data:
+        return jsonify({'error': 'Authentication required'}), 401
     """Upload file with comprehensive security validation"""
     try:
         # Check if file is in request
@@ -1094,7 +1292,9 @@ def upload_file():
             sessions[session_id] = {
                 'files': {},
                 'timestamp': time.time(),
-                'upload_count': 0
+                'upload_count': 0,
+                'user_id': user_data.get('sub'),
+                'user_email': user_data.get('email')
             }
         
         # Limit files per session - but clean up old files first
@@ -1151,9 +1351,220 @@ def upload_file():
         logger.error(f"Upload error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/convert/public', methods=['POST'])
+@limiter.limit("10 per minute")
+def convert_file_public():
+    """Public conversion endpoint without authentication for frontend use"""
+    try:
+        # Handle malformed JSON
+        try:
+            data = request.json
+        except Exception as e:
+            logger.warning(f"Malformed JSON in convert request: {e}")
+            return jsonify({'error': 'Invalid JSON format'}), 400
+        
+        # Validate request data
+        if not data or 'fileId' not in data or 'outputFormat' not in data or 'sessionId' not in data:
+            logger.warning("Convert request missing required parameters")
+            return jsonify({'error': 'Missing required parameters: fileId, outputFormat, sessionId'}), 400
+        
+        file_id = data['fileId']
+        output_format = data['outputFormat'].lower().strip()  # Normalize format to lowercase
+        session_id = data['sessionId']
+        options = data.get('options', {})
+        
+        # Validate input parameters
+        if not re.match(r'^[a-zA-Z0-9-_]+$', file_id):
+            logger.warning(f"Invalid file ID format: {file_id}")
+            return jsonify({'error': 'Invalid file ID'}), 400
+        
+        if not re.match(r'^[a-zA-Z0-9-_]+$', session_id):
+            logger.warning(f"Invalid session ID format: {session_id}")
+            return jsonify({'error': 'Invalid session ID'}), 400
+        
+        # Use enhanced conversion system if available
+        if conversion_manager:
+            # Validate output format using enhanced system
+            supported_formats = conversion_manager.get_supported_formats()
+            if output_format not in supported_formats['outputs']:
+                logger.warning(f"Unsupported output format: {output_format}")
+                return jsonify({'error': f'Unsupported output format: {output_format}'}), 400
+        else:
+            # Fallback validation
+            allowed_output_formats = ['pdf', 'docx', 'png', 'jpg', 'jpeg', 'txt', 'html', 'csv']
+            if output_format not in allowed_output_formats:
+                logger.warning(f"Unsupported output format: {output_format}")
+                return jsonify({'error': f'Unsupported output format: {output_format}'}), 400
+        
+        # Check if session exists
+        if session_id not in sessions:
+            logger.warning(f"Session not found: {session_id}")
+            return jsonify({'error': 'Session not found'}), 404
+        
+        session = sessions[session_id]
+        
+        # Check if file exists in session
+        if file_id not in session['files']:
+            logger.warning(f"File not found in session: {file_id}")
+            return jsonify({'error': 'File not found'}), 404
+        
+        file_info = session['files'][file_id]
+        input_path = file_info['path']
+        
+        # Check if input file exists
+        if not os.path.exists(input_path):
+            logger.warning(f"Input file not found: {input_path}")
+            return jsonify({'error': 'Input file not found'}), 404
+        
+        # Get input file type
+        input_type = get_file_extension(file_info['original_name']).lower()
+        
+        # Check file size
+        if file_info['size'] > MAX_FILE_SIZE:
+            logger.warning(f"File too large for conversion: {file_info['size']} bytes")
+            return jsonify({'error': 'File too large for conversion'}), 400
+        
+        # Check if conversion is supported (enhanced system or fallback)
+        conversion_supported = False
+        use_enhanced_system = False
+        
+        if conversion_manager:
+            # Check if enhanced system can handle this conversion
+            if conversion_manager.can_convert(input_type, output_format):
+                conversion_supported = True
+                use_enhanced_system = True
+                logger.info(f"Using enhanced conversion system for {input_type} to {output_format}")
+            else:
+                logger.info(f"Enhanced system cannot convert {input_type} to {output_format}, checking fallback")
+        
+        if not conversion_supported:
+            # Check fallback conversion map
+            conversion_map = {
+                'pdf': ['docx', 'png', 'jpg', 'jpeg', 'txt', 'html'],
+                'png': ['pdf', 'jpg', 'jpeg'],
+                'jpg': ['pdf', 'png'],
+                'jpeg': ['pdf', 'png'],
+                'docx': ['pdf', 'txt'],
+                'txt': ['pdf', 'docx', 'html']
+            }
+            
+            if input_type in conversion_map and output_format in conversion_map[input_type]:
+                conversion_supported = True
+                use_enhanced_system = False
+                logger.info(f"Using fallback conversion for {input_type} to {output_format}")
+        
+        if not conversion_supported:
+            logger.warning(f"Unsupported conversion: {input_type} to {output_format}")
+            return jsonify({'error': f'Cannot convert {input_type} to {output_format}'}), 400
+        
+        # Prevent converting to same format
+        if input_type == output_format:
+            logger.warning(f"Same format conversion attempted: {input_type}")
+            return jsonify({'error': 'Source and target formats are the same'}), 400
+        
+        # Generate output filename
+        output_filename = generate_unique_filename(file_info['original_name'], output_format)
+        output_path = os.path.join(OUTPUT_FOLDER, output_filename)
+        
+        logger.info(f"Starting public conversion: {input_type} to {output_format}")
+        
+        # Use the appropriate conversion system
+        conversion_successful = False
+        if use_enhanced_system and conversion_manager:
+            try:
+                # Use the enhanced conversion manager
+                result = conversion_manager.convert_file(
+                    input_path=input_path,
+                    output_path=output_path,
+                    input_format=input_type,
+                    output_format=output_format,
+                    options=options
+                )
+                
+                if result['success']:
+                    logger.info(f"Enhanced conversion successful: {input_type} to {output_format}")
+                    conversion_successful = True
+                else:
+                    logger.warning(f"Enhanced conversion failed: {result.get('error', 'Unknown error')}, trying fallback methods")
+                
+            except Exception as e:
+                logger.warning(f"Enhanced conversion error: {str(e)}, trying fallback methods")
+        
+        # Use fallback conversion logic if enhanced system is not used or failed
+        if not conversion_successful:
+            # Fallback conversion logic
+            try:
+                if input_type == 'pdf' and output_format == 'docx':
+                    convert_pdf_to_docx(input_path, output_path)
+                elif input_type == 'pdf' and output_format in ['png', 'jpg', 'jpeg']:
+                    convert_pdf_to_image(input_path, output_path, output_format)
+                elif input_type == 'pdf' and output_format == 'txt':
+                    convert_pdf_to_text(input_path, output_path)
+                elif input_type in ['png', 'jpg', 'jpeg'] and output_format == 'pdf':
+                    convert_image_to_pdf(input_path, output_path)
+                elif input_type in ['png', 'jpg', 'jpeg'] and output_format in ['png', 'jpg', 'jpeg']:
+                    convert_image_to_image(input_path, output_path, output_format)
+                elif input_type == 'docx' and output_format == 'pdf':
+                    convert_docx_to_pdf(input_path, output_path)
+                elif input_type == 'docx' and output_format == 'txt':
+                    convert_docx_to_text(input_path, output_path)
+                elif input_type == 'txt' and output_format == 'pdf':
+                    convert_text_to_pdf(input_path, output_path)
+                elif input_type == 'txt' and output_format == 'html':
+                    convert_text_to_html(input_path, output_path)
+                else:
+                    logger.warning(f"Unsupported conversion: {input_type} to {output_format}")
+                    return jsonify({'error': f'Conversion from {input_type} to {output_format} not supported'}), 400
+                
+                logger.info(f"Fallback conversion successful: {input_type} to {output_format}")
+                
+            except Exception as e:
+                logger.error(f"Conversion error: {str(e)}")
+                return jsonify({'error': f'Conversion failed: {str(e)}'}), 500
+        
+        # Check if output file was created
+        if not os.path.exists(output_path):
+            logger.error(f"Output file not created: {output_path}")
+            return jsonify({'error': 'Conversion failed - output file not created'}), 500
+        
+        # Get output file size
+        output_size = os.path.getsize(output_path)
+        
+        # Generate unique ID for output file
+        output_file_id = str(uuid.uuid4())
+        
+        # Store output file info in session
+        session['files'][output_file_id] = {
+            'path': output_path,
+            'original_name': output_filename,
+            'size': output_size,
+            'upload_time': time.time(),
+            'type': 'output'
+        }
+        # Explicitly save the session to trigger persistence
+        sessions[session_id] = session
+        
+        logger.info(f"Public conversion completed successfully: {file_id} -> {output_file_id}")
+        
+        return jsonify({
+            'success': True,
+            'fileId': output_file_id,
+            'filename': output_filename,
+            'size': output_size,
+            'downloadUrl': f'/api/download/public/{output_file_id}?session_id={session_id}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in public conversion: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
 @app.route('/api/convert', methods=['POST'])
 @limiter.limit("5 per minute")
 def convert_file():
+    # Verify user authentication
+    user_data = verify_supabase_token(request)
+    if not user_data:
+        return jsonify({'error': 'Authentication required'}), 401
     """Convert file with comprehensive validation and security checks"""
     try:
         # Handle malformed JSON
@@ -1258,6 +1669,7 @@ def convert_file():
         logger.info(f"Starting conversion: {input_type} to {output_format}")
         
         # Use enhanced conversion system if available
+        conversion_successful = False
         if conversion_manager:
             try:
                 # Use the enhanced conversion manager
@@ -1269,42 +1681,23 @@ def convert_file():
                     options=options
                 )
                 
-                # Update output path if the conversion manager changed it
-                if result.get('output_path'):
-                    output_path = result['output_path']
+                if result['success']:
+                    # Update output path if the conversion manager changed it
+                    if result.get('output_path'):
+                        output_path = result['output_path']
+                    conversion_successful = True
+                    logger.info(f"Enhanced conversion successful: {input_type} to {output_format}")
+                else:
+                    logger.warning(f"Enhanced conversion failed: {result.get('error', 'Unknown error')}, trying fallback methods")
                     
             except Exception as conversion_error:
-                logger.error(f"Enhanced conversion failed: {str(conversion_error)}")
-                # Fall back to legacy conversion methods
-                logger.info("Falling back to legacy conversion methods")
-                
-                # Perform conversion based on input and output formats (legacy fallback)
-                if input_type == 'pdf':
-                    if output_format == 'docx':
-                        convert_pdf_to_docx(input_path, output_path)
-                    elif output_format in ['jpg', 'jpeg', 'png']:
-                        convert_pdf_to_image(input_path, output_path, format=output_format)
-                    elif output_format == 'txt':
-                        convert_pdf_to_text(input_path, output_path, use_ocr=options.get('ocr', False))
-                elif input_type in ['jpg', 'jpeg', 'png']:
-                    if output_format == 'pdf':
-                        convert_image_to_pdf(input_path, output_path)
-                    elif output_format in ['jpg', 'jpeg', 'png']:
-                        convert_image_to_image(input_path, output_path, output_format)
-                elif input_type == 'docx':
-                    if output_format == 'pdf':
-                        convert_docx_to_pdf(input_path, output_path)
-                    elif output_format == 'txt':
-                        convert_docx_to_text(input_path, output_path)
-                elif input_type == 'txt':
-                    if output_format == 'pdf':
-                        convert_text_to_pdf(input_path, output_path)
-                else:
-                    raise Exception(f"Unsupported conversion: {input_type} to {output_format}")
-        else:
-            # Use legacy conversion methods
+                logger.warning(f"Enhanced conversion error: {str(conversion_error)}, trying fallback methods")
+        
+        # Use fallback conversion logic if enhanced system is not available or failed
+        if not conversion_successful:
             logger.info("Using legacy conversion methods")
             
+            # Perform conversion based on input and output formats (legacy fallback)
             if input_type == 'pdf':
                 if output_format == 'docx':
                     convert_pdf_to_docx(input_path, output_path)
@@ -1312,10 +1705,10 @@ def convert_file():
                     convert_pdf_to_image(input_path, output_path, format=output_format)
                 elif output_format == 'txt':
                     convert_pdf_to_text(input_path, output_path, use_ocr=options.get('ocr', False))
-            elif input_type in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp']:
+            elif input_type in ['jpg', 'jpeg', 'png']:
                 if output_format == 'pdf':
                     convert_image_to_pdf(input_path, output_path)
-                elif output_format in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp']:
+                elif output_format in ['jpg', 'jpeg', 'png']:
                     convert_image_to_image(input_path, output_path, output_format)
             elif input_type == 'docx':
                 if output_format == 'pdf':
@@ -1400,9 +1793,113 @@ def convert_file():
         # Return error response
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/download/public/<file_id>', methods=['GET'])
+@limiter.limit("30 per minute")
+def download_file_public(file_id):
+    """Public download endpoint for files created through public conversion flow"""
+    session_id = request.args.get('session_id')
+    # Check if this is a preview request
+    is_preview = request.args.get('preview', 'false').lower() == 'true'
+    # Check if this is a forced download request
+    force_download_param = request.args.get('download', 'false').lower() == 'true'
+    
+    # Check if session exists
+    if not session_id or session_id not in sessions:
+        return jsonify({'error': 'Session not found'}), 404
+    
+    # Check if file exists in session
+    if file_id not in sessions[session_id]['files']:
+        return jsonify({'error': 'File not found'}), 404
+    
+    # Get file info
+    file_info = sessions[session_id]['files'][file_id]
+    file_path = file_info['path']
+    file_type = file_info['type'].lower()
+    
+    # Check if file exists on disk
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found on server'}), 404
+    
+    # Update session timestamp
+    sessions[session_id]['timestamp'] = time.time()
+    
+    # Use stored MIME type if available, otherwise determine based on file extension
+    mime_type = file_info.get('mime_type')
+    
+    if mime_type is None:
+        # Set the correct MIME type based on file extension
+        if file_type == 'pdf':
+            mime_type = 'application/pdf'
+        elif file_type == 'docx':
+            mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        elif file_type == 'xlsx':
+            mime_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        elif file_type == 'pptx':
+            mime_type = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        elif file_type in ['jpg', 'jpeg']:
+            mime_type = 'image/jpeg'
+        elif file_type == 'png':
+            mime_type = 'image/png'
+        elif file_type == 'txt':
+            mime_type = 'text/plain'
+        elif file_type == 'html':
+            mime_type = 'text/html'
+        elif file_type == 'json':
+            mime_type = 'application/json'
+        
+        # If no mime type was determined, try to guess based on file extension
+        if mime_type is None:
+            mime_type = 'application/octet-stream'  # Default fallback
+        
+    # For image files, verify they exist and are valid
+    if file_type in ['jpg', 'jpeg', 'png'] and os.path.exists(file_path) and PIL_AVAILABLE:
+        try:
+            # Attempt to open the image to verify it's valid
+            with Image.open(file_path) as img:
+                # Get actual format from the image
+                actual_format = img.format.lower() if img.format else file_type
+                if actual_format == 'jpeg':
+                    mime_type = 'image/jpeg'
+                elif actual_format == 'png':
+                    mime_type = 'image/png'
+        except Exception as e:
+            print(f"Error verifying image: {str(e)}")
+            # Continue anyway, we'll try to serve the file
+    
+    # Determine if we should force download or display inline
+    # Always display inline for preview requests
+    # Force download if explicitly requested via download parameter
+    # Otherwise, display images and PDFs inline, download other formats
+    if is_preview:
+        force_download = False  # Always inline for previews
+    elif force_download_param:
+        force_download = True   # Force download when explicitly requested
+    else:
+        force_download = not (file_type in ['jpg', 'jpeg', 'png', 'pdf'])  # Default behavior
+    
+    # Add cache control headers to improve performance
+    response = send_file(file_path, 
+                     as_attachment=force_download, 
+                     download_name=file_info['original_name'], 
+                     mimetype=mime_type)
+    
+    # Add cache headers for better performance
+    response.headers['Cache-Control'] = 'public, max-age=300'  # Cache for 5 minutes
+    logger.info(f"Public file downloaded: {file_id} ({file_info['original_name']})")
+    return response
+
 @app.route('/api/download/<file_id>', methods=['GET'])
 def download_file(file_id):
+    """Download endpoint with flexible authentication - supports both authenticated users and public sessions"""
     session_id = request.args.get('session_id')
+    
+    # Try to verify user authentication, but don't require it if session_id is provided
+    user_data = verify_supabase_token(request)
+    
+    # If no user authentication and no session_id, require authentication
+    if not user_data and not session_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
     # Check if this is a preview request
     is_preview = request.args.get('preview', 'false').lower() == 'true'
     # Check if this is a forced download request
@@ -1665,18 +2162,131 @@ def health_check():
             'timestamp': datetime.now(timezone.utc).isoformat()
         }), 503
 
+# =============================================================================
+# CONTACT FORM HANDLER
+# =============================================================================
+
+@app.route('/api/contact', methods=['POST'])
+@limiter.limit("5 per minute")
+def contact_form():
+    """Handle contact form submissions and route to contact@entityconsulting.net"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'email', 'subject', 'message']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        # Validate email format
+        if not EMAIL_PATTERN.match(data['email']):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid email format'
+            }), 400
+        
+        # Sanitize inputs
+        name = data['name'].strip()[:100]
+        email = data['email'].strip()[:100]
+        subject = data['subject'].strip()[:200]
+        message = data['message'].strip()[:2000]
+        inquiry_type = data.get('inquiry_type', 'general').strip()[:50]
+        
+        # Create email content
+        email_subject = f"[DocSwap Contact] {inquiry_type.title()}: {subject}"
+        email_body = f"""
+New contact form submission from DocSwap:
+
+Name: {name}
+Email: {email}
+Inquiry Type: {inquiry_type.title()}
+Subject: {subject}
+
+Message:
+{message}
+
+---
+Submitted from: {get_remote_address()}
+Timestamp: {datetime.now(timezone.utc).isoformat()}
+"""
+        
+        # For now, log the contact form submission
+        # In production, you would integrate with your email service
+        logger.info(f"Contact form submission: {email_subject}")
+        logger.info(f"From: {name} <{email}>")
+        logger.info(f"Message: {message[:200]}...")
+        
+        # Store contact submission for admin review
+        contact_data = {
+            'id': str(uuid.uuid4()),
+            'name': name,
+            'email': email,
+            'subject': subject,
+            'message': message,
+            'inquiry_type': inquiry_type,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'ip_address': get_remote_address(),
+            'status': 'new'
+        }
+        
+        # Save to sessions for admin review (you can implement database storage later)
+        contact_id = f"contact_{contact_data['id']}"
+        sessions[contact_id] = contact_data
+        
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your message! We will get back to you within 24 hours.',
+            'contact_id': contact_data['id']
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Contact form error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to send message. Please try again later.'
+        }), 500
+
+@app.route('/api/contact/admin', methods=['GET'])
+def get_contact_submissions():
+    """Get all contact form submissions for admin review"""
+    try:
+        # This would require admin authentication in production
+        contact_submissions = []
+        for key in sessions.keys():
+            if key.startswith('contact_'):
+                contact_submissions.append(sessions[key])
+        
+        # Sort by timestamp (newest first)
+        contact_submissions.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'submissions': contact_submissions
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error fetching contact submissions: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch contact submissions'
+        }), 500
+
 # Import admin module
 from admin import admin_app, init_admin
 
 # Register admin blueprint
 app.register_blueprint(admin_app, url_prefix='/admin')
 
-# Initialize admin system
+# Initialize admin interface
 init_admin(app)
 
 if __name__ == '__main__':
     # Disable debug mode in production
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     host = os.getenv('HOST', '0.0.0.0')  # Use 0.0.0.0 for production hosting
-    port = int(os.getenv('PORT', 5002))
+    port = int(os.getenv('PORT', 8000))
     app.run(debug=debug_mode, host=host, port=port)
