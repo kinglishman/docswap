@@ -401,10 +401,13 @@ function handleFile(file) {
         }
         fileProcessingSection.classList.remove('hidden');
         
-        // Smooth scroll to conversion options
-        setTimeout(() => {
-            scrollToConversionOptions();
-        }, 300);
+        // Only scroll to conversion options if user is authenticated
+        // If not authenticated, they'll see the auth modal when they try to convert
+        if (window.auth && window.auth.isAuthenticated()) {
+            setTimeout(() => {
+                scrollToConversionOptions();
+            }, 300);
+        }
         
     }, 800);
     
@@ -758,6 +761,27 @@ function handleConversion() {
     
     console.log('📁 File selected:', currentFile.name, currentFile.type);
     
+    // Check if user is authenticated - if not, show auth modal
+    if (window.auth && !window.auth.isAuthenticated()) {
+        console.log('🔐 User not authenticated, showing auth modal');
+        window.auth.openModal(false); // Open in sign-in mode
+        
+        // Store the conversion intent so we can proceed after authentication
+        window.pendingConversion = {
+            file: currentFile,
+            outputFormat: document.getElementById('output-format').value,
+            ocrEnabled: document.getElementById('ocr-option').checked,
+            compressionLevel: document.getElementById('compression-level').value,
+            imageQuality: document.getElementById('image-quality').value,
+            imageResolution: document.getElementById('image-resolution').value,
+            preserveFormatting: document.getElementById('preserve-formatting').checked,
+            textEncoding: document.getElementById('text-encoding').value
+        };
+        
+        showNotification('Please sign in to convert your file', 'info');
+        return;
+    }
+    
     // Get selected options
     const outputFormat = document.getElementById('output-format').value;
     const ocrEnabled = document.getElementById('ocr-option').checked;
@@ -933,7 +957,7 @@ function uploadAndConvertFile(outputFormat) {
         startConversionProgress(outputFormat);
         
         // First upload the file
-        fetch(`${window.API_BASE_URL}/api/upload/public`, {
+        fetch(`${window.API_BASE_URL}/api/upload`, {
             method: 'POST',
             body: formData
         })
@@ -954,7 +978,7 @@ function uploadAndConvertFile(outputFormat) {
             updateProgressStatus('Starting conversion process...', 40, 'Step 3 of 4', '15s');
             
             // Now convert the file
-            return fetch(`${window.API_BASE_URL}/api/convert/public`, {
+            return fetch(`${window.API_BASE_URL}/api/convert`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
