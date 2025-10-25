@@ -5,8 +5,9 @@
   "main": "api/index.js",
   "scripts": {
     "dev": "vercel dev",
-    "build": "echo 'Build completed successfully' && ls -la",
-    "start": "vercel dev"
+    "build": "echo 'Static build completed - no compilation needed'",
+    "start": "node api/index.js",
+    "vercel-build": "echo 'Vercel build completed'"
   },
   "dependencies": {
     "formidable": "^3.5.1",

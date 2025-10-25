@@ -1,0 +1,75 @@
+# Python files (not needed for Vercel Node.js deployment)
+*.py
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Development files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+sessions/
+*.tmp
+
+# Documentation (not needed for deployment)
+*.md
+!README.md
+
+# Python requirements (not needed for Node.js deployment)
+requirements*.txt
+gunicorn.conf.py
+supervisor.conf
+
+# Templates and admin files (Python-specific)
+templates/
+admin_templates/
+admin.py
+user_auth.py
+verify_admin.py
+security_config.py
+cleanup_files.py
+conversion/
