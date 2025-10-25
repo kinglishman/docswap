@@ -401,13 +401,11 @@ function handleFile(file) {
         }
         fileProcessingSection.classList.remove('hidden');
         
-        // Only scroll to conversion options if user is authenticated
-        // If not authenticated, they'll see the auth modal when they try to convert
-        if (window.auth && window.auth.isAuthenticated()) {
-            setTimeout(() => {
-                scrollToConversionOptions();
-            }, 300);
-        }
+        // Always scroll to conversion options after file upload
+        // Authentication will be handled when user tries to convert
+        setTimeout(() => {
+            scrollToConversionOptions();
+        }, 300);
         
     }, 800);
     
@@ -746,7 +744,7 @@ function applyAiSuggestion(format, enableOcr = false) {
 }
 
 // Handle the conversion process
-function handleConversion() {
+async function handleConversion() {
     console.log('🔄 handleConversion called - BUTTON CLICKED!');
     console.log('🔍 Current file state:', currentFile);
     console.log('🔍 Session ID state:', sessionId);
@@ -762,24 +760,27 @@ function handleConversion() {
     console.log('📁 File selected:', currentFile.name, currentFile.type);
     
     // Check if user is authenticated - if not, show auth modal
-    if (window.auth && !window.auth.isAuthenticated()) {
-        console.log('🔐 User not authenticated, showing auth modal');
-        window.auth.openModal(false); // Open in sign-in mode
-        
-        // Store the conversion intent so we can proceed after authentication
-        window.pendingConversion = {
-            file: currentFile,
-            outputFormat: document.getElementById('output-format').value,
-            ocrEnabled: document.getElementById('ocr-option').checked,
-            compressionLevel: document.getElementById('compression-level').value,
-            imageQuality: document.getElementById('image-quality').value,
-            imageResolution: document.getElementById('image-resolution').value,
-            preserveFormatting: document.getElementById('preserve-formatting').checked,
-            textEncoding: document.getElementById('text-encoding').value
-        };
-        
-        showNotification('Please sign in to convert your file', 'info');
-        return;
+    if (window.auth) {
+        const isAuthenticated = await window.auth.isAuthenticated();
+        if (!isAuthenticated) {
+            console.log('🔐 User not authenticated, showing auth modal');
+            window.auth.openModal(false); // Open in sign-in mode
+            
+            // Store the conversion intent so we can proceed after authentication
+            window.pendingConversion = {
+                file: currentFile,
+                outputFormat: document.getElementById('output-format').value,
+                ocrEnabled: document.getElementById('ocr-option').checked,
+                compressionLevel: document.getElementById('compression-level').value,
+                imageQuality: document.getElementById('image-quality').value,
+                imageResolution: document.getElementById('image-resolution').value,
+                preserveFormatting: document.getElementById('preserve-formatting').checked,
+                textEncoding: document.getElementById('text-encoding').value
+            };
+            
+            showNotification('Please sign in to convert your file', 'info');
+            return;
+        }
     }
     
     // Get selected options

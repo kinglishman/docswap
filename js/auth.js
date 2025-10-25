@@ -679,6 +679,17 @@ class SeamlessAuth {
     isConversionInProgress() {
         return this.conversionInProgress;
     }
+
+    // Check if user is currently authenticated
+    async isAuthenticated() {
+        try {
+            const { data: { user }, error } = await this.supabase.auth.getUser();
+            return !error && user !== null;
+        } catch (error) {
+            console.error('❌ Error checking authentication status:', error);
+            return false;
+        }
+    }
 }
 
 // Initialize auth when DOM is ready
