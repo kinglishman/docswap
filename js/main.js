@@ -979,7 +979,7 @@ function uploadAndConvertFile(outputFormat) {
             updateProgressStatus('Starting conversion process...', 40, 'Step 3 of 4', '15s');
             
             // Now convert the file
-            return fetch(`${window.API_BASE_URL}/api/convert`, {
+            return fetch(`${window.API_BASE_URL}/api/convert/public`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
