@@ -56,7 +56,7 @@ const CAPABILITIES = {
   }
 };
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // Set CORS headers
   Object.keys(corsHeaders).forEach(key => {
     res.setHeader(key, corsHeaders[key]);
@@ -88,4 +88,4 @@ module.exports = async (req, res) => {
       details: error.message 
     });
   }
-};
+}
