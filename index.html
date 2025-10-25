@@ -647,15 +647,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOMContentLoaded event fired');
             
-            // Enable upload container by default for better UX
-            const uploadContainer = document.getElementById('upload-container');
-            if (uploadContainer) {
-                // Remove disabled class and enable pointer events
-                uploadContainer.classList.remove('disabled');
-                uploadContainer.style.pointerEvents = 'auto';
-                uploadContainer.style.opacity = '1';
-                console.log('Upload container enabled');
-            }
+            // Upload container state will be controlled by authentication system
+            // Don't enable it here - let auth.js handle the state
+            console.log('Upload container state will be managed by authentication system');
         });
     </script>
 </body>

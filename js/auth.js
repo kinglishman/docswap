@@ -29,18 +29,26 @@ class SeamlessAuth {
                 console.log('✅ User is authenticated, updating UI');
                 this.handleAuthSuccess(user);
             } else {
-                // User is not authenticated, update UI but don't show modal automatically
-                console.log('🔐 User not authenticated, updating UI');
+                // User is not authenticated, show auth modal automatically
+                console.log('🔐 User not authenticated, showing auth modal');
                 this.updateUIForUnauthenticatedUser();
                 
-                // Don't open auth modal automatically - let user initiate when needed
-                console.log('📱 Auth modal ready for user-initiated access');
+                // Show auth modal automatically on app launch
+                setTimeout(() => {
+                    console.log('📱 Opening auth modal automatically');
+                    this.openModal(false); // Open in sign-in mode
+                }, 500); // Small delay to ensure UI is ready
             }
         } catch (error) {
             console.error('❌ Error during auth initialization:', error);
-            // Update UI for unauthenticated state but don't force modal
+            // Update UI for unauthenticated state and show modal
             this.updateUIForUnauthenticatedUser();
-            console.log('📱 Auth modal ready for user-initiated access (fallback)');
+            
+            // Show auth modal automatically even in error case
+            setTimeout(() => {
+                console.log('📱 Opening auth modal automatically (fallback)');
+                this.openModal(false); // Open in sign-in mode
+            }, 500);
         }
     }
 
@@ -508,9 +516,9 @@ class SeamlessAuth {
             userProfile.style.display = 'none';
         }
         
-        // Keep upload functionality enabled for all users since we have public endpoints
-        // Users can convert files without authentication using /api/upload/public and /api/convert/public
-        this.enableUploadFunctionality();
+        // Disable upload functionality until user authenticates
+        // This ensures users must sign in before using the service
+        this.disableUploadFunctionality();
     }
 
     enableUploadFunctionality() {
