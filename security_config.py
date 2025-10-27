@@ -25,7 +25,9 @@ class SecurityConfig:
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https:; "
             "connect-src 'self' https://*.supabase.co; "
-            "frame-ancestors 'none'; "
+            "child-src 'self'; "
+            "frame-src 'self'; "
+            "frame-ancestors 'self'; "
             "base-uri 'self'; "
             "form-action 'self'"
         ),

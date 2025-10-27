@@ -1,14 +1,19 @@
 """
 Enhanced document conversion engine supporting comprehensive document format conversions.
 Uses existing libraries (python-docx, PyPDF2) with improved capabilities and error handling.
+Optimized for performance with streaming, caching, and memory management.
 """
 
 import os
 import logging
-from typing import Dict, List, Optional, Any
+import gc
+import threading
+from typing import Dict, List, Optional, Any, Generator
 from pathlib import Path
 import tempfile
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
+import time
 
 try:
     from docx import Document
@@ -48,10 +53,15 @@ from .base_engine import ConversionEngine, ConversionError
 logger = logging.getLogger(__name__)
 
 class DocumentEngine(ConversionEngine):
-    """Enhanced document conversion engine with comprehensive format support."""
+    """Enhanced document conversion engine with comprehensive format support and performance optimization."""
     
     def __init__(self):
         super().__init__("DocumentEngine")
+        self._conversion_cache = {}
+        self._cache_lock = threading.Lock()
+        self._max_cache_size = 50  # Maximum cached conversions
+        self._chunk_size = 8192  # 8KB chunks for streaming
+        self._thread_pool = ThreadPoolExecutor(max_workers=2)  # Limit concurrent conversions
     
     def _initialize_formats(self) -> None:
         """Initialize supported document formats and conversion matrix."""
@@ -115,13 +125,16 @@ class DocumentEngine(ConversionEngine):
                 input_format: str, output_format: str, 
                 options: Optional[Dict[str, Any]] = None) -> bool:
         """
-        Convert between document formats.
+        Convert between document formats with performance optimization.
         
         Options:
             - preserve_formatting: Boolean for format preservation
             - extract_images: Boolean for image extraction from documents
             - page_range: Tuple (start, end) for page-specific operations
+            - use_cache: Boolean to enable/disable caching (default: True)
+            - streaming: Boolean to enable streaming for large files (default: True)
         """
+        start_time = time.time()
         try:
             options = options or {}
             input_format = input_format.lower()
@@ -135,42 +148,166 @@ class DocumentEngine(ConversionEngine):
                     output_format=output_format
                 )
             
+            # Check cache if enabled
+            if options.get('use_cache', True):
+                cache_key = self._get_cache_key(input_path, output_format, options)
+                cached_result = self._get_from_cache(cache_key)
+                if cached_result and os.path.exists(cached_result):
+                    logger.info(f"Using cached conversion result: {cached_result}")
+                    # Copy cached file to output path
+                    import shutil
+                    shutil.copy2(cached_result, output_path)
+                    return True
+            
+            # Get file size for optimization decisions
+            file_size = os.path.getsize(input_path)
+            is_large_file = file_size > 5 * 1024 * 1024  # 5MB threshold
+            
             # Route to appropriate conversion method
             conversion_key = f"{input_format}_to_{output_format}"
             
+            # Add performance options
+            perf_options = options.copy()
+            perf_options.update({
+                'is_large_file': is_large_file,
+                'file_size': file_size,
+                'streaming': options.get('streaming', True)
+            })
+            
+            success = False
             if hasattr(self, f"_convert_{conversion_key}"):
-                return getattr(self, f"_convert_{conversion_key}")(input_path, output_path, options)
+                success = getattr(self, f"_convert_{conversion_key}")(input_path, output_path, perf_options)
             else:
-                return self._generic_convert(input_path, output_path, input_format, output_format, options)
+                success = self._generic_convert(input_path, output_path, input_format, output_format, perf_options)
+            
+            # Cache successful conversion if enabled
+            if success and options.get('use_cache', True):
+                self._add_to_cache(cache_key, output_path)
+            
+            # Force garbage collection for large files
+            if is_large_file:
+                gc.collect()
+            
+            conversion_time = time.time() - start_time
+            logger.info(f"Conversion completed in {conversion_time:.2f}s (file size: {file_size/1024/1024:.1f}MB)")
+            
+            return success
                 
         except Exception as e:
             logger.error(f"Document conversion failed: {str(e)}")
             raise ConversionError(f"Document conversion failed: {str(e)}", engine=self.name)
     
+    def _get_cache_key(self, input_path: str, output_format: str, options: Dict[str, Any]) -> str:
+        """Generate a cache key for the conversion."""
+        import hashlib
+        
+        # Get file modification time and size for cache invalidation
+        stat = os.stat(input_path)
+        file_info = f"{stat.st_mtime}_{stat.st_size}"
+        
+        # Create hash of input path, output format, and relevant options
+        cache_data = f"{input_path}_{output_format}_{file_info}"
+        
+        # Include relevant options in cache key
+        relevant_options = {k: v for k, v in options.items() 
+                          if k in ['preserve_formatting', 'extract_images', 'page_range']}
+        if relevant_options:
+            cache_data += f"_{str(sorted(relevant_options.items()))}"
+        
+        return hashlib.md5(cache_data.encode()).hexdigest()
+    
+    def _get_from_cache(self, cache_key: str) -> Optional[str]:
+        """Get cached conversion result."""
+        with self._cache_lock:
+            return self._conversion_cache.get(cache_key)
+    
+    def _add_to_cache(self, cache_key: str, output_path: str) -> None:
+        """Add conversion result to cache."""
+        with self._cache_lock:
+            # Create cache directory if it doesn't exist
+            cache_dir = os.path.join(tempfile.gettempdir(), 'docswap_cache')
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            # Copy file to cache with unique name
+            cache_file = os.path.join(cache_dir, f"{cache_key}_{os.path.basename(output_path)}")
+            import shutil
+            shutil.copy2(output_path, cache_file)
+            
+            # Add to cache
+            self._conversion_cache[cache_key] = cache_file
+            
+            # Limit cache size
+            if len(self._conversion_cache) > self._max_cache_size:
+                # Remove oldest entry
+                oldest_key = next(iter(self._conversion_cache))
+                old_file = self._conversion_cache.pop(oldest_key)
+                if os.path.exists(old_file):
+                    os.remove(old_file)
+    
     def _convert_pdf_to_txt(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
-        """Extract text from PDF."""
+        """Extract text from PDF with optimized performance."""
         if not PDF_AVAILABLE:
             return False
         
         try:
+            is_large_file = options.get('is_large_file', False)
+            streaming = options.get('streaming', True)
+            
             with open(input_path, 'rb') as file:
                 pdf_reader = PyPDF2.PdfReader(file)
-                text_content = []
+                total_pages = len(pdf_reader.pages)
                 
                 page_range = options.get('page_range')
                 if page_range:
                     start_page, end_page = page_range
-                    pages = range(start_page - 1, min(end_page, len(pdf_reader.pages)))
+                    pages = range(start_page - 1, min(end_page, total_pages))
                 else:
-                    pages = range(len(pdf_reader.pages))
+                    pages = range(total_pages)
                 
-                for page_num in pages:
-                    page = pdf_reader.pages[page_num]
-                    text_content.append(page.extract_text())
+                # For large files or when streaming is enabled, process pages in chunks
+                if is_large_file and streaming:
+                    with open(output_path, 'w', encoding='utf-8') as output_file:
+                        chunk_size = 10  # Process 10 pages at a time
+                        for i in range(0, len(pages), chunk_size):
+                            chunk_pages = pages[i:i + chunk_size]
+                            chunk_text = []
+                            
+                            for page_num in chunk_pages:
+                                try:
+                                    page = pdf_reader.pages[page_num]
+                                    text = page.extract_text()
+                                    if text.strip():  # Only add non-empty text
+                                        chunk_text.append(text)
+                                except Exception as e:
+                                    logger.warning(f"Failed to extract text from page {page_num + 1}: {str(e)}")
+                                    continue
+                            
+                            if chunk_text:
+                                output_file.write('\n\n'.join(chunk_text))
+                                if i + chunk_size < len(pages):  # Not the last chunk
+                                    output_file.write('\n\n')
+                                output_file.flush()  # Ensure data is written
+                            
+                            # Force garbage collection for large files
+                            if is_large_file:
+                                gc.collect()
+                else:
+                    # Standard processing for smaller files
+                    text_content = []
+                    for page_num in pages:
+                        try:
+                            page = pdf_reader.pages[page_num]
+                            text = page.extract_text()
+                            if text.strip():  # Only add non-empty text
+                                text_content.append(text)
+                        except Exception as e:
+                            logger.warning(f"Failed to extract text from page {page_num + 1}: {str(e)}")
+                            continue
+                    
+                    with open(output_path, 'w', encoding='utf-8') as output_file:
+                        output_file.write('\n\n'.join(text_content))
                 
-                with open(output_path, 'w', encoding='utf-8') as output_file:
-                    output_file.write('\n\n'.join(text_content))
-                
+                logger.info(f"Successfully extracted text from {len(pages)} pages")
                 return True
                 
         except Exception as e:
@@ -178,28 +315,56 @@ class DocumentEngine(ConversionEngine):
             return False
     
     def _convert_pdf_to_docx(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
-        """Convert PDF to DOCX using pdf2docx."""
+        """Convert PDF to DOCX using pdf2docx with optimized performance."""
         if not PDF2DOCX_AVAILABLE:
             logger.error("pdf2docx library not available")
             return False
         
         try:
-            # Create converter instance
+            is_large_file = options.get('is_large_file', False)
+            file_size = options.get('file_size', 0)
+            
+            logger.info(f"Starting PDF to DOCX conversion (file size: {file_size/1024/1024:.1f}MB)")
+            
+            # Create converter instance with optimized settings
             cv = PDFToDocxConverter(input_path)
             
             # Get page range if specified
             page_range = options.get('page_range')
+            
+            # For large files, use optimized conversion parameters
+            conversion_params = {}
+            if is_large_file:
+                # Optimize for large files
+                conversion_params.update({
+                    'multi_processing': True,  # Enable multiprocessing if available
+                    'cpu_count': min(2, os.cpu_count() or 1),  # Limit CPU usage
+                })
+                logger.info("Using optimized settings for large file conversion")
+            
+            # Perform conversion with progress tracking
+            start_time = time.time()
+            
             if page_range:
                 start_page, end_page = page_range
-                cv.convert(output_path, start=start_page-1, end=end_page-1)
+                cv.convert(output_path, start=start_page-1, end=end_page-1, **conversion_params)
+                logger.info(f"Converted pages {start_page}-{end_page}")
             else:
-                cv.convert(output_path)
+                cv.convert(output_path, **conversion_params)
+                logger.info("Converted all pages")
             
             cv.close()
             
+            # Force garbage collection for large files
+            if is_large_file:
+                gc.collect()
+            
+            conversion_time = time.time() - start_time
+            
             # Verify output file was created and has content
             if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                logger.info(f"Successfully converted PDF to DOCX: {output_path}")
+                output_size = os.path.getsize(output_path)
+                logger.info(f"Successfully converted PDF to DOCX in {conversion_time:.2f}s (output: {output_size/1024/1024:.1f}MB)")
                 return True
             else:
                 logger.error("PDF to DOCX conversion produced empty file")
@@ -207,6 +372,12 @@ class DocumentEngine(ConversionEngine):
                 
         except Exception as e:
             logger.error(f"PDF to DOCX conversion failed: {str(e)}")
+            # Clean up partial files
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except:
+                    pass
             return False
     
     def _convert_docx_to_txt(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
@@ -341,6 +512,77 @@ class DocumentEngine(ConversionEngine):
         except Exception as e:
             logger.error(f"Text to PDF conversion failed: {str(e)}")
             return False
+    
+    def _convert_txt_to_html(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
+        """Convert text to HTML."""
+        try:
+            # Read the text file
+            with open(input_path, 'r', encoding='utf-8') as input_file:
+                content = input_file.read()
+            
+            # Create HTML structure
+            html_content = [
+                '<!DOCTYPE html>',
+                '<html lang="en">',
+                '<head>',
+                '    <meta charset="UTF-8">',
+                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                '    <title>Converted Document</title>',
+                '    <style>',
+                '        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }',
+                '        .content { max-width: 800px; margin: 0 auto; }',
+                '        p { margin-bottom: 1em; }',
+                '        pre { background-color: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }',
+                '    </style>',
+                '</head>',
+                '<body>',
+                '    <div class="content">'
+            ]
+            
+            # Process content - split into paragraphs and handle line breaks
+            paragraphs = content.split('\n\n')
+            
+            for paragraph in paragraphs:
+                if paragraph.strip():
+                    # Handle single line breaks within paragraphs
+                    lines = paragraph.strip().split('\n')
+                    if len(lines) == 1:
+                        # Single line paragraph
+                        html_content.append(f'        <p>{self._escape_html(lines[0])}</p>')
+                    else:
+                        # Multi-line paragraph - preserve line breaks
+                        html_content.append('        <p>')
+                        for i, line in enumerate(lines):
+                            if i > 0:
+                                html_content.append('            <br>')
+                            html_content.append(f'            {self._escape_html(line)}')
+                        html_content.append('        </p>')
+            
+            # Close HTML structure
+            html_content.extend([
+                '    </div>',
+                '</body>',
+                '</html>'
+            ])
+            
+            # Write HTML file
+            with open(output_path, 'w', encoding='utf-8') as output_file:
+                output_file.write('\n'.join(html_content))
+            
+            logger.info("Successfully converted text to HTML")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Text to HTML conversion failed: {str(e)}")
+            return False
+    
+    def _escape_html(self, text: str) -> str:
+        """Escape HTML special characters."""
+        return (text.replace('&', '&amp;')
+                   .replace('<', '&lt;')
+                   .replace('>', '&gt;')
+                   .replace('"', '&quot;')
+                   .replace("'", '&#x27;'))
     
     def _convert_xlsx_to_csv(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
         """Convert XLSX to CSV."""

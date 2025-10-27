@@ -29,26 +29,22 @@ class SeamlessAuth {
                 console.log('✅ User is authenticated, updating UI');
                 this.handleAuthSuccess(user);
             } else {
-                // User is not authenticated, show auth modal automatically
-                console.log('🔐 User not authenticated, showing auth modal');
+                // User is not authenticated, show auth modal at launch
+                console.log('🔐 User not authenticated, showing auth modal at launch');
                 this.updateUIForUnauthenticatedUser();
                 
-                // Show auth modal automatically on app launch
-                setTimeout(() => {
-                    console.log('📱 Opening auth modal automatically');
-                    this.openModal(false); // Open in sign-in mode
-                }, 500); // Small delay to ensure UI is ready
+                // Show authentication modal at app launch
+                this.openModal();
+                console.log('🚪 Authentication modal opened at app launch');
             }
         } catch (error) {
             console.error('❌ Error during auth initialization:', error);
-            // Update UI for unauthenticated state and show modal
+            // Update UI for unauthenticated state and show auth modal
             this.updateUIForUnauthenticatedUser();
             
-            // Show auth modal automatically even in error case
-            setTimeout(() => {
-                console.log('📱 Opening auth modal automatically (fallback)');
-                this.openModal(false); // Open in sign-in mode
-            }, 500);
+            // Show auth modal even on error
+            this.openModal();
+            console.log('🚪 Authentication modal opened due to auth error');
         }
     }
 
@@ -109,21 +105,19 @@ class SeamlessAuth {
             });
         });
 
-        // Close modal (only if authenticated)
+        // Close modal (allow closing to proceed with public access)
         const closeBtn = this.modal?.querySelector('.auth-close');
         const backdrop = this.modal?.querySelector('.auth-backdrop');
         
         closeBtn?.addEventListener('click', () => {
-            // Only allow closing if user is authenticated
-            if (this.supabase?.auth?.getUser && this.supabase.auth.getUser()) {
-                this.closeModal();
-            }
+            // Allow closing to proceed with public functionality
+            this.closeModal();
+            console.log('🚪 Modal closed - proceeding with public access');
         });
         backdrop?.addEventListener('click', () => {
-            // Only allow closing if user is authenticated
-            if (this.supabase?.auth?.getUser && this.supabase.auth.getUser()) {
-                this.closeModal();
-            }
+            // Allow closing to proceed with public functionality
+            this.closeModal();
+            console.log('🚪 Modal closed via backdrop - proceeding with public access');
         });
 
         // Form submission
@@ -152,13 +146,12 @@ class SeamlessAuth {
             });
         });
 
-        // Prevent ESC key from closing modal when not authenticated
+        // Allow ESC key to close modal and proceed with public access
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal?.classList.contains('show')) {
-                // Only allow closing if user is authenticated
-                if (this.supabase?.auth?.getUser && this.supabase.auth.getUser()) {
-                    this.closeModal();
-                }
+                // Allow closing to proceed with public functionality
+                this.closeModal();
+                console.log('🚪 Modal closed via ESC key - proceeding with public access');
                 e.preventDefault();
             }
         });
@@ -516,9 +509,10 @@ class SeamlessAuth {
             userProfile.style.display = 'none';
         }
         
-        // Disable upload functionality until user authenticates
-        // This ensures users must sign in before using the service
-        this.disableUploadFunctionality();
+        // Keep upload functionality enabled for public access
+        // Users can use core features without authentication
+        this.enableUploadFunctionality();
+        console.log('✅ Upload functionality enabled for public access');
     }
 
     enableUploadFunctionality() {

@@ -97,16 +97,18 @@
         grid-template-columns: 1fr;
         gap: var(--spacing-xl);
         text-align: center;
-        min-height: auto;
+        min-height: 80vh;
     }
     
     .hero-text {
         text-align: center;
         order: 1;
+        padding-right: 0;
     }
     
     .hero-upload {
         order: 2;
+        padding-left: 0;
     }
     
     .hero h1 {
@@ -130,14 +132,16 @@
     }
     
     .upload-area {
-        min-height: 280px;
-        padding: var(--spacing-xl);
+        min-height: 320px;
+        height: 320px;
+        padding: var(--spacing-lg);
         width: 100%;
+        max-width: 300px;
     }
     
     .hero {
-        min-height: auto;
-        padding: var(--spacing-xl) 0;
+        min-height: 100vh;
+        padding: var(--spacing-lg) 0;
     }
 }
 
@@ -167,9 +171,11 @@
     }
     
     .upload-area {
-        min-height: 240px;
-        padding: var(--spacing-lg);
+        min-height: 280px;
+        height: 280px;
+        padding: var(--spacing-md);
         width: 100%;
+        max-width: 260px;
     }
 }
 

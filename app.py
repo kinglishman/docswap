@@ -21,6 +21,8 @@ import schedule
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import gzip
+import io
 
 # Load environment variables
 load_dotenv()
@@ -48,6 +50,8 @@ except ImportError as e:
     print(f"Enhanced conversion system not available: {e}")
     ConversionManager = None
     conversion_system_available = False
+
+# Async conversion system will be imported after logger is defined
 
 # Import conversion libraries
 try:
@@ -96,8 +100,11 @@ CORS(app, origins=allowed_origins)
 @app.after_request
 def add_security_headers(response):
     """Add security headers to all responses"""
-    # Prevent clickjacking
-    response.headers['X-Frame-Options'] = 'DENY'
+    # Allow framing for download endpoints to enable PDF preview
+    if request.endpoint and ('download' in request.endpoint or 'api/download' in request.path):
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    else:
+        response.headers['X-Frame-Options'] = 'DENY'
     
     # Prevent MIME type sniffing
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -119,7 +126,8 @@ def add_security_headers(response):
         "connect-src 'self' *.supabase.co qzuwonueyvouvrhiwcob.supabase.co; "
         "media-src 'self'; "
         "object-src 'none'; "
-        "child-src 'none'; "
+        "child-src 'self'; "
+        "frame-src 'self'; "
         "worker-src 'none'; "
         "frame-ancestors 'self'; "
         "form-action 'self'; "
@@ -167,7 +175,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Supabase authentication configuration
+# Async conversion system
+try:
+    from async_conversion import async_conversion_manager, ConversionStatus
+    async_conversion_available = True
+    logger.info("Async conversion system loaded successfully")
+except ImportError as e:
+    logger.warning(f"Async conversion system not available: {e}")
+    async_conversion_manager = None
+    async_conversion_available = False
+
+# Supabase configuration
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY')
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
@@ -362,6 +380,67 @@ def generate_unique_filename(original_filename, output_format):
     
     # Return the new filename
     return f"{name}-{unique_id}.{output_format}"
+
+def should_compress_file(file_path, mime_type):
+    """Determine if a file should be compressed based on type and size"""
+    # Don't compress already compressed formats
+    compressed_types = {
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+        'application/zip', 'application/gzip', 'application/x-gzip',
+        'video/', 'audio/'
+    }
+    
+    # Check if mime type indicates already compressed content
+    for compressed_type in compressed_types:
+        if mime_type.startswith(compressed_type):
+            return False
+    
+    # Only compress files larger than 1KB and smaller than 50MB
+    file_size = os.path.getsize(file_path)
+    return 1024 < file_size < 50 * 1024 * 1024
+
+def get_compressed_file_size(file_path):
+    """Get the size of a file if it were compressed"""
+    try:
+        with open(file_path, 'rb') as f:
+            data = f.read()
+            compressed_data = gzip.compress(data)
+            return len(compressed_data)
+    except Exception:
+        return os.path.getsize(file_path)
+
+def create_compressed_response(file_path, mime_type, filename, force_download=False):
+    """Create a compressed response for file download"""
+    from flask import Response
+    
+    def generate_compressed_stream():
+        with open(file_path, 'rb') as f:
+            # Create a gzip compressor
+            buffer = io.BytesIO()
+            with gzip.GzipFile(fileobj=buffer, mode='wb') as gz:
+                while True:
+                    chunk = f.read(8192)  # 8KB chunks
+                    if not chunk:
+                        break
+                    gz.write(chunk)
+            
+            # Get compressed data and yield in chunks
+            compressed_data = buffer.getvalue()
+            for i in range(0, len(compressed_data), 8192):
+                yield compressed_data[i:i+8192]
+    
+    response = Response(
+        generate_compressed_stream(),
+        mimetype=mime_type,
+        headers={
+            'Content-Disposition': f'{"attachment" if force_download else "inline"}; filename="{filename}"',
+            'Content-Encoding': 'gzip',
+            'Cache-Control': 'public, max-age=300',
+            'Accept-Ranges': 'bytes'
+        }
+    )
+    
+    return response
 
 # Conversion functions
 def convert_pdf_to_docx(input_path, output_path):
@@ -1100,6 +1179,12 @@ cleanup_thread.start()
 # Routes
 @app.route('/')
 def index():
+    return app.send_static_file('index.html')
+
+# Catch-all route for SPA routing (e.g., /result/<job_id>)
+@app.route('/result/<path:job_id>')
+def result_page(job_id):
+    """Serve index.html for result pages to enable SPA routing"""
     return app.send_static_file('index.html')
 
 @app.route('/api/upload/public', methods=['POST'])
@@ -1877,16 +1962,61 @@ def download_file_public(file_id):
     else:
         force_download = not (file_type in ['jpg', 'jpeg', 'png', 'pdf'])  # Default behavior
     
-    # Add cache control headers to improve performance
-    response = send_file(file_path, 
-                     as_attachment=force_download, 
-                     download_name=file_info['original_name'], 
-                     mimetype=mime_type)
+    # Get file size for optimization decisions
+    file_size = os.path.getsize(file_path)
     
-    # Add cache headers for better performance
-    response.headers['Cache-Control'] = 'public, max-age=300'  # Cache for 5 minutes
-    logger.info(f"Public file downloaded: {file_id} ({file_info['original_name']})")
-    return response
+    # Check if compression should be applied
+    should_compress = should_compress_file(file_path, mime_type)
+    
+    # Check if client accepts gzip compression
+    accept_encoding = request.headers.get('Accept-Encoding', '')
+    client_accepts_gzip = 'gzip' in accept_encoding.lower()
+    
+    # Apply compression if beneficial and supported
+    if should_compress and client_accepts_gzip:
+        logger.info(f"Applying compression to file: {file_id}")
+        return create_compressed_response(
+            file_path, 
+            mime_type, 
+            file_info['original_name'], 
+            force_download
+        )
+    
+    # For large files (>5MB), use streaming to improve performance
+    if file_size > 5 * 1024 * 1024:  # 5MB threshold
+        def generate_file_stream():
+            with open(file_path, 'rb') as f:
+                while True:
+                    chunk = f.read(8192)  # 8KB chunks
+                    if not chunk:
+                        break
+                    yield chunk
+        
+        from flask import Response
+        response = Response(
+            generate_file_stream(),
+            mimetype=mime_type,
+            headers={
+                'Content-Disposition': f'{"attachment" if force_download else "inline"}; filename="{file_info["original_name"]}"',
+                'Content-Length': str(file_size),
+                'Cache-Control': 'public, max-age=300',
+                'Accept-Ranges': 'bytes'
+            }
+        )
+        logger.info(f"Public file streamed: {file_id} ({file_info['original_name']}, {file_size} bytes)")
+        return response
+    else:
+        # For smaller files, use regular send_file
+        response = send_file(file_path, 
+                         as_attachment=force_download, 
+                         download_name=file_info['original_name'], 
+                         mimetype=mime_type)
+        
+        # Add cache headers for better performance
+        response.headers['Cache-Control'] = 'public, max-age=300'  # Cache for 5 minutes
+        response.headers['Accept-Ranges'] = 'bytes'
+        logger.info(f"Public file downloaded: {file_id} ({file_info['original_name']}, {file_size} bytes)")
+        return response
 
 @app.route('/api/download/<file_id>', methods=['GET'])
 def download_file(file_id):
@@ -1979,15 +2109,61 @@ def download_file(file_id):
     else:
         force_download = not (file_type in ['jpg', 'jpeg', 'png', 'pdf'])  # Default behavior
     
-    # Add cache control headers to improve performance
-    response = send_file(file_path, 
-                     as_attachment=force_download, 
-                     download_name=file_info['original_name'], 
-                     mimetype=mime_type)
+    # Get file size for optimization decisions
+    file_size = os.path.getsize(file_path)
     
-    # Add cache headers for better performance
-    response.headers['Cache-Control'] = 'public, max-age=300'  # Cache for 5 minutes
-    return response
+    # Check if compression should be applied
+    should_compress = should_compress_file(file_path, mime_type)
+    
+    # Check if client accepts gzip compression
+    accept_encoding = request.headers.get('Accept-Encoding', '')
+    client_accepts_gzip = 'gzip' in accept_encoding.lower()
+    
+    # Apply compression if beneficial and supported
+    if should_compress and client_accepts_gzip:
+        logger.info(f"Applying compression to file: {file_id}")
+        return create_compressed_response(
+            file_path, 
+            mime_type, 
+            file_info['original_name'], 
+            force_download
+        )
+    
+    # For large files (>5MB), use streaming to improve performance
+    if file_size > 5 * 1024 * 1024:  # 5MB threshold
+        def generate_file_stream():
+            with open(file_path, 'rb') as f:
+                while True:
+                    chunk = f.read(8192)  # 8KB chunks
+                    if not chunk:
+                        break
+                    yield chunk
+        
+        from flask import Response
+        response = Response(
+            generate_file_stream(),
+            mimetype=mime_type,
+            headers={
+                'Content-Disposition': f'{"attachment" if force_download else "inline"}; filename="{file_info["original_name"]}"',
+                'Content-Length': str(file_size),
+                'Cache-Control': 'public, max-age=300',
+                'Accept-Ranges': 'bytes'
+            }
+        )
+        logger.info(f"File streamed: {file_id} ({file_info['original_name']}, {file_size} bytes)")
+        return response
+    else:
+        # For smaller files, use regular send_file
+        response = send_file(file_path, 
+                         as_attachment=force_download, 
+                         download_name=file_info['original_name'], 
+                         mimetype=mime_type)
+        
+        # Add cache headers for better performance
+        response.headers['Cache-Control'] = 'public, max-age=300'  # Cache for 5 minutes
+        response.headers['Accept-Ranges'] = 'bytes'
+        logger.info(f"File downloaded: {file_id} ({file_info['original_name']}, {file_size} bytes)")
+        return response
 
 @app.route('/api/session/<session_id>', methods=['GET'])
 def get_session(session_id):
@@ -2274,6 +2450,363 @@ def get_contact_submissions():
             'success': False,
             'error': 'Failed to fetch contact submissions'
         }), 500
+
+# =============================================================================
+# ASYNC CONVERSION ENDPOINTS
+# =============================================================================
+
+@app.route('/api/convert/async/public', methods=['POST'])
+@limiter.limit("10 per minute")
+def convert_file_async_public():
+    """Submit a file for asynchronous conversion with progress tracking"""
+    if not async_conversion_available:
+        return jsonify({'error': 'Async conversion system not available'}), 503
+        
+    try:
+        data = request.json
+        if not data or 'fileId' not in data or 'outputFormat' not in data or 'sessionId' not in data:
+            return jsonify({'error': 'Missing required parameters: fileId, outputFormat, sessionId'}), 400
+        
+        file_id = data['fileId']
+        output_format = data['outputFormat'].lower().strip()
+        session_id = data['sessionId']
+        options = data.get('options', {})
+        
+        # Validate parameters
+        if not re.match(r'^[a-zA-Z0-9-_]+$', file_id):
+            return jsonify({'error': 'Invalid file ID'}), 400
+        if not re.match(r'^[a-zA-Z0-9-_]+$', session_id):
+            return jsonify({'error': 'Invalid session ID'}), 400
+            
+        # Check session and file
+        if session_id not in sessions:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        session = sessions[session_id]
+        if file_id not in session['files']:
+            return jsonify({'error': 'File not found'}), 404
+            
+        file_info = session['files'][file_id]
+        input_path = file_info['path']
+        
+        if not os.path.exists(input_path):
+            return jsonify({'error': 'Input file not found'}), 404
+            
+        # Get input format
+        input_format = get_file_extension(file_info['original_name']).lower()
+        
+        # Generate output filename and path
+        output_filename = generate_unique_filename(file_info['original_name'], output_format)
+        output_path = os.path.join(OUTPUT_FOLDER, output_filename)
+        
+        # Determine conversion function
+        conversion_func = None
+        if conversion_manager and conversion_manager.can_convert(input_format, output_format):
+            # Use enhanced conversion system
+            def enhanced_conversion(input_path, output_path, options):
+                return conversion_manager.convert(input_path, output_path, input_format, output_format, options)
+            conversion_func = enhanced_conversion
+        else:
+            # Use fallback conversion functions
+            conversion_map = {
+                ('pdf', 'docx'): lambda i, o, opts: convert_pdf_to_docx(i, o),
+                ('pdf', 'txt'): lambda i, o, opts: convert_pdf_to_text(i, o),
+                ('pdf', 'png'): lambda i, o, opts: convert_pdf_to_image(i, o, 'png'),
+                ('pdf', 'jpg'): lambda i, o, opts: convert_pdf_to_image(i, o, 'jpg'),
+                ('docx', 'pdf'): lambda i, o, opts: convert_docx_to_pdf(i, o),
+                ('docx', 'txt'): lambda i, o, opts: convert_docx_to_text(i, o),
+                ('txt', 'pdf'): lambda i, o, opts: convert_text_to_pdf(i, o),
+                ('png', 'pdf'): lambda i, o, opts: convert_image_to_pdf(i, o),
+                ('jpg', 'pdf'): lambda i, o, opts: convert_image_to_pdf(i, o),
+                ('jpeg', 'pdf'): lambda i, o, opts: convert_image_to_pdf(i, o),
+            }
+            
+            conversion_func = conversion_map.get((input_format, output_format))
+            
+        if not conversion_func:
+            return jsonify({'error': f'Conversion from {input_format} to {output_format} not supported'}), 400
+            
+        # Submit async conversion job
+        job_id = async_conversion_manager.submit_conversion(
+            session_id=session_id,
+            file_id=file_id,
+            input_path=input_path,
+            output_path=output_path,
+            input_format=input_format,
+            output_format=output_format,
+            conversion_func=conversion_func,
+            options=options
+        )
+        
+        # Store job info in session
+        if 'conversion_jobs' not in session:
+            session['conversion_jobs'] = {}
+        session['conversion_jobs'][job_id] = {
+            'file_id': file_id,
+            'output_format': output_format,
+            'output_path': output_path,
+            'output_filename': output_filename
+        }
+        sessions[session_id] = session
+        
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'message': 'Conversion job submitted successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in async conversion: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/convert/status/<job_id>', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_conversion_status(job_id):
+    """Get the status of a conversion job"""
+    if not async_conversion_available:
+        return jsonify({'error': 'Async conversion system not available'}), 503
+        
+    try:
+        if not re.match(r'^[a-zA-Z0-9-_]+$', job_id):
+            return jsonify({'error': 'Invalid job ID'}), 400
+            
+        job_status = async_conversion_manager.get_job_status(job_id)
+        if not job_status:
+            return jsonify({'error': 'Job not found'}), 404
+            
+        return jsonify({
+            'success': True,
+            'job': job_status
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting conversion status: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/convert/progress/<job_id>', methods=['GET'])
+@limiter.limit("120 per minute")  # Higher limit for real-time updates
+def get_conversion_progress(job_id):
+    """Get real-time conversion progress with detailed information"""
+    if not async_conversion_available:
+        return jsonify({'error': 'Async conversion system not available'}), 503
+        
+    try:
+        if not re.match(r'^[a-zA-Z0-9-_]+$', job_id):
+            return jsonify({'error': 'Invalid job ID'}), 400
+            
+        job_status = async_conversion_manager.get_job_status(job_id)
+        if not job_status:
+            return jsonify({'error': 'Job not found'}), 404
+            
+        # Calculate estimated time remaining based on progress
+        progress = job_status.get('progress', 0)
+        status = job_status.get('status', 'unknown')
+        
+        # Estimate remaining time based on progress and typical conversion times
+        estimated_remaining = 0
+        if status == 'processing' and progress < 100:
+            # Base estimation on file size and current progress
+            file_size = job_status.get('file_size', 0)
+            if file_size > 0:
+                # Rough estimation: 1MB takes ~2-5 seconds to process
+                base_time = min(max(file_size / (1024 * 1024) * 3, 5), 60)  # 5-60 seconds
+                remaining_progress = 100 - progress
+                estimated_remaining = int((base_time * remaining_progress) / 100)
+            else:
+                # Fallback estimation based on progress
+                if progress < 20:
+                    estimated_remaining = 30
+                elif progress < 50:
+                    estimated_remaining = 20
+                elif progress < 80:
+                    estimated_remaining = 10
+                else:
+                    estimated_remaining = 5
+        
+        # Generate progress message based on current status and progress
+        progress_message = "Initializing..."
+        if status == 'pending':
+            progress_message = "Waiting in queue..."
+        elif status == 'processing':
+            if progress < 10:
+                progress_message = "Preparing conversion..."
+            elif progress < 30:
+                progress_message = "Analyzing file structure..."
+            elif progress < 70:
+                progress_message = f"Converting to {job_status.get('output_format', 'target format').upper()}..."
+            elif progress < 95:
+                progress_message = "Finalizing conversion..."
+            else:
+                progress_message = "Almost complete..."
+        elif status == 'completed':
+            progress_message = "Conversion completed successfully!"
+        elif status == 'failed':
+            progress_message = "Conversion failed"
+        elif status == 'cancelled':
+            progress_message = "Conversion cancelled"
+            
+        return jsonify({
+            'success': True,
+            'job_id': job_id,
+            'status': status,
+            'progress': progress,
+            'message': progress_message,
+            'estimated_remaining_seconds': estimated_remaining,
+            'file_size': job_status.get('file_size', 0),
+            'input_format': job_status.get('input_format', ''),
+            'output_format': job_status.get('output_format', ''),
+            'created_at': job_status.get('created_at', ''),
+            'updated_at': job_status.get('updated_at', ''),
+            'queue_position': async_conversion_manager.get_queue_position(job_id) if status == 'pending' else 0
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting conversion progress: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/convert/cancel/<job_id>', methods=['POST'])
+@limiter.limit("30 per minute")
+def cancel_conversion(job_id):
+    """Cancel a conversion job"""
+    if not async_conversion_available:
+        return jsonify({'error': 'Async conversion system not available'}), 503
+        
+    try:
+        if not re.match(r'^[a-zA-Z0-9-_]+$', job_id):
+            return jsonify({'error': 'Invalid job ID'}), 400
+            
+        success = async_conversion_manager.cancel_job(job_id)
+        if not success:
+            return jsonify({'error': 'Job not found or cannot be cancelled'}), 400
+            
+        return jsonify({
+            'success': True,
+            'message': 'Job cancelled successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error cancelling conversion: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/session/<session_id>/jobs', methods=['GET'])
+@limiter.limit("30 per minute")
+def get_session_jobs(session_id):
+    """Get all conversion jobs for a session"""
+    if not async_conversion_available:
+        return jsonify({'error': 'Async conversion system not available'}), 503
+        
+    try:
+        if not re.match(r'^[a-zA-Z0-9-_]+$', session_id):
+            return jsonify({'error': 'Invalid session ID'}), 400
+            
+        jobs = async_conversion_manager.get_session_jobs(session_id)
+        
+        return jsonify({
+            'success': True,
+            'jobs': jobs
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting session jobs: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/convert/queue/status', methods=['GET'])
+@limiter.limit("30 per minute")
+def get_queue_status():
+    """Get overall conversion queue status"""
+    if not async_conversion_available:
+        return jsonify({'error': 'Async conversion system not available'}), 503
+        
+    try:
+        queue_status = async_conversion_manager.get_queue_status()
+        
+        return jsonify({
+            'success': True,
+            'queue': queue_status
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting queue status: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/download/async/<job_id>', methods=['GET'])
+@limiter.limit("30 per minute")
+def download_async_result(job_id):
+    """Download the result of an async conversion job"""
+    if not async_conversion_available:
+        return jsonify({'error': 'Async conversion system not available'}), 503
+        
+    try:
+        if not re.match(r'^[a-zA-Z0-9-_]+$', job_id):
+            return jsonify({'error': 'Invalid job ID'}), 400
+            
+        job_status = async_conversion_manager.get_job_status(job_id)
+        if not job_status:
+            return jsonify({'error': 'Job not found'}), 404
+            
+        if job_status['status'] != 'completed':
+            return jsonify({'error': 'Job not completed yet'}), 400
+            
+        output_path = job_status['output_path']
+        if not os.path.exists(output_path):
+            return jsonify({'error': 'Output file not found'}), 404
+            
+        # Get session info for filename
+        session_id = job_status['session_id']
+        if session_id in sessions:
+            session = sessions[session_id]
+            job_info = session.get('conversion_jobs', {}).get(job_id, {})
+            filename = job_info.get('output_filename', os.path.basename(output_path))
+        else:
+            filename = os.path.basename(output_path)
+            
+        # Determine MIME type
+        file_extension = os.path.splitext(filename)[1].lower().lstrip('.')
+        mime_type = {
+            'pdf': 'application/pdf',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'txt': 'text/plain',
+            'html': 'text/html',
+            'csv': 'text/csv',
+            'json': 'application/json',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png'
+        }.get(file_extension, 'application/octet-stream')
+        
+        # Check if this is a preview request
+        is_preview = request.args.get('preview', '').lower() == 'true'
+        
+        # Check if compression should be applied
+        should_compress = should_compress_file(output_path, mime_type)
+        
+        # Check if client accepts gzip compression
+        accept_encoding = request.headers.get('Accept-Encoding', '')
+        client_accepts_gzip = 'gzip' in accept_encoding.lower()
+        
+        # Apply compression if beneficial and supported
+        if should_compress and client_accepts_gzip:
+            logger.info(f"Applying compression to async result: {job_id}")
+            return create_compressed_response(
+                output_path, 
+                mime_type, 
+                filename, 
+                force_download=not is_preview
+            )
+            
+        # For preview requests, serve inline; otherwise force download
+        return send_file(
+            output_path,
+            as_attachment=not is_preview,
+            download_name=filename if not is_preview else None,
+            mimetype=mime_type
+        )
+        
+    except Exception as e:
+        logger.error(f"Error downloading async result: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 # Import admin module
 from admin import admin_app, init_admin

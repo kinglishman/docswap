@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "formidable": "^3.5.1",
+    "playwright": "^1.56.1",
     "uuid": "^9.0.1"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }

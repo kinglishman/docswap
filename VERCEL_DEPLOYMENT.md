@@ -82,7 +82,6 @@ All original endpoints are preserved:
 ✅ Contact forms
 ✅ Multi-language support
 ✅ Responsive design
-✅ AdSense integration
 ✅ Font Awesome icons
 ✅ Rate limiting
 ✅ Security headers

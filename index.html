@@ -6,6 +6,7 @@
     <meta name="description" content="Free online file converter. Convert PDF to Word, Excel to PDF, images to PDF and more. Fast, secure, and no registration required. Convert any file format instantly.">
     <meta name="keywords" content="free file converter, PDF converter, Word to PDF, Excel to PDF, online converter, document converter, image converter, file conversion tool">
     <meta name="robots" content="index, follow">
+    <meta name="scroll-restoration" content="manual">
     <meta property="og:title" content="DocSwap - Free Online File Converter">
     <meta property="og:description" content="Convert any file format instantly. Free, fast, and secure online file converter supporting PDF, Word, Excel, images and more.">
     <meta property="og:type" content="website">
@@ -26,12 +27,7 @@
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/adsense.css">
     <link rel="icon" href="#" id="favicon">
-    
-    <!-- Google AdSense Auto Ads Script -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1752766479568749"
-         crossorigin="anonymous"></script>
 </head>
 <body>
     <header class="header">
@@ -67,17 +63,6 @@
         </div>
     </header>
 
-    <!-- Header Banner Ad (728x90 Leaderboard) -->
-    <div class="ad-container header-ad">
-        <ins class="adsbygoogle"
-             style="display:inline-block;width:728px;height:90px"
-             data-ad-client="ca-pub-1752766479568749"
-             data-ad-slot="XXXXXXXXXX"></ins>
-        <script>
-             (adsbygoogle = window.adsbygoogle || []).push({});
-        </script>
-    </div>
-
     <main>
         <section class="hero">
             <div class="container">
@@ -112,17 +97,6 @@
                     </div>
                     
                     <div class="hero-upload">
-                        <!-- Sidebar Rectangle Ad (300x250 Medium Rectangle) -->
-                        <div class="ad-container sidebar-ad">
-                            <ins class="adsbygoogle"
-                                 style="display:inline-block;width:300px;height:250px"
-                                 data-ad-client="ca-pub-1752766479568749"
-                                 data-ad-slot="XXXXXXXXXX"></ins>
-                            <script>
-                                 (adsbygoogle = window.adsbygoogle || []).push({});
-                            </script>
-                        </div>
-                        
                         <div class="upload-container" id="upload-container">
                             <div class="upload-area" id="drop-area">
                                 <div class="upload-icon">
@@ -198,8 +172,8 @@
                         </svg>
                         <h3>AI Format Suggestion</h3>
                     </div>
-                    <div class="suggestion-content" id="suggestion-content">
-                        <div class="suggestion-loading">
+                    <div class="ai-suggestion-content" id="suggestion-content">
+                        <div class="ai-suggestion-loading">
                             <div class="loading-bar"></div>
                             <div class="loading-bar"></div>
                         </div>
@@ -219,6 +193,7 @@
                         <div class="form-group">
                             <select id="output-format" class="format-select">
                                 <option value="" disabled selected>Select output format</option>
+                                <option value="pdf">PDF Document</option>
                                 <option value="docx">Word (.docx)</option>
                                 <option value="xlsx">Excel (.xlsx)</option>
                                 <option value="pptx">PowerPoint (.pptx)</option>
@@ -308,17 +283,6 @@
                     </div>
                 </div>
                 
-                <!-- In-Content Rectangle Ad (300x250) -->
-                <div class="ad-container content-ad">
-                    <ins class="adsbygoogle"
-                         style="display:inline-block;width:300px;height:250px"
-                         data-ad-client="ca-pub-1752766479568749"
-                         data-ad-slot="XXXXXXXXXX"></ins>
-                    <script>
-                         (adsbygoogle = window.adsbygoogle || []).push({});
-                    </script>
-                </div>
-                
                 <div class="result-actions-container">
                     <div class="result-actions">
                         <button class="btn btn-download" id="download-btn">
@@ -330,17 +294,6 @@
                             Download
                         </button>
                         <button class="btn btn-secondary" id="new-conversion-btn">New Conversion</button>
-                    </div>
-                    
-                    <!-- High-Value Download Page Ad (Prime Real Estate) -->
-                    <div class="ad-container download-ad">
-                        <ins class="adsbygoogle"
-                             style="display:inline-block;width:300px;height:250px"
-                             data-ad-client="ca-pub-1752766479568749"
-                             data-ad-slot="XXXXXXXXXX"></ins>
-                        <script>
-                             (adsbygoogle = window.adsbygoogle || []).push({});
-                        </script>
                     </div>
                 </div>
                 
@@ -501,17 +454,6 @@
         </div>
     </div>
 
-    <!-- Footer Banner Ad (728x90 Leaderboard) -->
-    <div class="ad-container footer-ad">
-        <ins class="adsbygoogle"
-             style="display:inline-block;width:728px;height:90px"
-             data-ad-client="ca-pub-1752766479568749"
-             data-ad-slot="XXXXXXXXXX"></ins>
-        <script>
-             (adsbygoogle = window.adsbygoogle || []).push({});
-        </script>
-    </div>
-
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
@@ -589,7 +531,7 @@
             <div class="result-state hidden" id="result-state">
                 <div class="result-header">
                     <div class="success-animation">
-                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                             <path d="M20 6L9 17l-5-5"></path>
                         </svg>
                     </div>
@@ -639,7 +581,7 @@
             onerror="console.error('Failed to load Supabase from CDN'); this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'"></script>
     <script src="js/supabase-config.js?v=10"></script>
     <script src="js/auth.js?v=9"></script>
-    <script src="js/main.js?v=13"></script>
+    <script src="js/main.js?v=23"></script>
     <script src="js/translations.js?v=6"></script>
     <script src="js/icon.js?v=6"></script>
     <script>

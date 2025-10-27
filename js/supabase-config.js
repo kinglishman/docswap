@@ -2,7 +2,7 @@
 
 // Configuration - Auto-detect environment
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5001'  // Local development - Flask backend
+    ? 'http://localhost:8000'  // Local development - Flask backend
     : window.location.origin;  // Production - same origin as frontend
 
 // Make API_BASE_URL globally available
