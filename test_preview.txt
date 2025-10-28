@@ -1,0 +1,13 @@
+Test Document for PDF Preview
+
+This is a test document to verify that the PDF preview functionality works correctly after fixing the X-Frame-Options and inline viewing issues.
+
+Key Features Tested:
+1. Text to PDF conversion
+2. PDF preview in iframe
+3. Inline viewing instead of forced download
+4. Security headers allowing same-origin framing
+
+The PDF should display properly in the preview container without showing "This content is blocked" error.
+
+Test completed successfully if this text appears in the PDF preview.

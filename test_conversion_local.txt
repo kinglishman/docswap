@@ -1,0 +1,10 @@
+This is a test file for conversion.
+We are testing the local conversion functionality.
+This file should be converted to PDF successfully.
+
+Test content:
+- Line 1
+- Line 2
+- Line 3
+
+End of test file.

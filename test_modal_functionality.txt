@@ -1,0 +1,8 @@
+This is a test file to verify that:
+
+1. Authentication modal appears at app launch
+2. Users can dismiss the modal (via close button, backdrop click, or ESC key)
+3. After dismissing the modal, users can upload and convert files using public APIs
+4. All functionality works without requiring authentication
+
+Test content for conversion: Hello World! This file should convert successfully using the public API endpoints.

@@ -1,0 +1,8 @@
+This is a test file to verify that file conversion works without authentication.
+
+The application should now allow:
+- File upload without requiring login
+- File conversion without authentication modal
+- Download of converted files
+
+This test confirms that the public access functionality is working correctly.

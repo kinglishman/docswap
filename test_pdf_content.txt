@@ -1,0 +1,9 @@
+This is a test document for PDF to DOCX conversion.
+
+This document contains multiple paragraphs to test the conversion functionality.
+
+The new implementation uses PyPDF2 and python-docx libraries which are Vercel-compatible.
+
+This should work properly in serverless environments without requiring LibreOffice or pdf2docx.
+
+Testing line breaks and formatting preservation.

@@ -11,7 +11,6 @@ import threading
 from typing import Dict, List, Optional, Any, Generator
 from pathlib import Path
 import tempfile
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
 import time
 
@@ -34,11 +33,8 @@ try:
 except ImportError:
     XLSX_AVAILABLE = False
 
-try:
-    from pdf2docx import Converter as PDFToDocxConverter
-    PDF2DOCX_AVAILABLE = True
-except ImportError:
-    PDF2DOCX_AVAILABLE = False
+# PDF2DOCX functionality replaced with PyPDF2 + python-docx for Vercel compatibility
+PDF2DOCX_AVAILABLE = PDF_AVAILABLE and DOCX_AVAILABLE
 
 try:
     from reportlab.pdfgen import canvas
@@ -315,9 +311,9 @@ class DocumentEngine(ConversionEngine):
             return False
     
     def _convert_pdf_to_docx(self, input_path: str, output_path: str, options: Dict[str, Any]) -> bool:
-        """Convert PDF to DOCX using pdf2docx with optimized performance."""
+        """Convert PDF to DOCX using PyPDF2 + python-docx (Vercel-compatible)."""
         if not PDF2DOCX_AVAILABLE:
-            logger.error("pdf2docx library not available")
+            logger.error("PyPDF2 or python-docx library not available")
             return False
         
         try:
@@ -326,45 +322,65 @@ class DocumentEngine(ConversionEngine):
             
             logger.info(f"Starting PDF to DOCX conversion (file size: {file_size/1024/1024:.1f}MB)")
             
-            # Create converter instance with optimized settings
-            cv = PDFToDocxConverter(input_path)
+            # Extract text from PDF using PyPDF2
+            text_content = []
             
-            # Get page range if specified
-            page_range = options.get('page_range')
+            with open(input_path, 'rb') as pdf_file:
+                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                
+                # Get page range if specified
+                page_range = options.get('page_range')
+                if page_range:
+                    start_page, end_page = page_range
+                    pages_to_process = range(start_page - 1, min(end_page, len(pdf_reader.pages)))
+                else:
+                    pages_to_process = range(len(pdf_reader.pages))
+                
+                logger.info(f"Processing {len(pages_to_process)} pages")
+                
+                for page_num in pages_to_process:
+                    try:
+                        page = pdf_reader.pages[page_num]
+                        page_text = page.extract_text()
+                        
+                        if page_text.strip():
+                            text_content.append(f"--- Page {page_num + 1} ---\n{page_text}\n")
+                        else:
+                            text_content.append(f"--- Page {page_num + 1} ---\n[No extractable text]\n")
+                            
+                    except Exception as e:
+                        logger.warning(f"Failed to extract text from page {page_num + 1}: {str(e)}")
+                        text_content.append(f"--- Page {page_num + 1} ---\n[Text extraction failed]\n")
             
-            # For large files, use optimized conversion parameters
-            conversion_params = {}
-            if is_large_file:
-                # Optimize for large files
-                conversion_params.update({
-                    'multi_processing': True,  # Enable multiprocessing if available
-                    'cpu_count': min(2, os.cpu_count() or 1),  # Limit CPU usage
-                })
-                logger.info("Using optimized settings for large file conversion")
+            # Create DOCX document
+            doc = Document()
+            doc.add_heading('PDF Content', 0)
             
-            # Perform conversion with progress tracking
-            start_time = time.time()
+            # Add extracted text to document
+            full_text = '\n'.join(text_content)
             
-            if page_range:
-                start_page, end_page = page_range
-                cv.convert(output_path, start=start_page-1, end=end_page-1, **conversion_params)
-                logger.info(f"Converted pages {start_page}-{end_page}")
-            else:
-                cv.convert(output_path, **conversion_params)
-                logger.info("Converted all pages")
+            # Split into paragraphs and add to document
+            paragraphs = full_text.split('\n')
+            for paragraph in paragraphs:
+                if paragraph.strip():
+                    if paragraph.startswith('--- Page'):
+                        # Add page headers as headings
+                        doc.add_heading(paragraph.strip(), level=2)
+                    else:
+                        # Add regular text as paragraphs
+                        doc.add_paragraph(paragraph)
             
-            cv.close()
+            # Save the document
+            doc.save(output_path)
             
             # Force garbage collection for large files
             if is_large_file:
                 gc.collect()
             
-            conversion_time = time.time() - start_time
-            
             # Verify output file was created and has content
             if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                 output_size = os.path.getsize(output_path)
-                logger.info(f"Successfully converted PDF to DOCX in {conversion_time:.2f}s (output: {output_size/1024/1024:.1f}MB)")
+                logger.info(f"Successfully converted PDF to DOCX (output: {output_size/1024/1024:.1f}MB)")
                 return True
             else:
                 logger.error("PDF to DOCX conversion produced empty file")

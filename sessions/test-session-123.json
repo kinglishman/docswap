@@ -1,18 +1,18 @@
 {
-  "created_at": 1761428949.726909,
+  "created_at": 1761684493.939049,
   "files": {
-    "9ae192d2-47d2-4ef4-88b1-71a2b61923ca": {
-      "path": "/Users/bahaasalem/Desktop/DOCSWAP/uploads/caab082c-5a9a-4e79-8ea1-6659c22b7140.txt",
-      "original_name": "test_upload.txt",
-      "size": 200,
-      "upload_time": 1761428949.7289898,
+    "315851a5-b789-48b5-afc0-6ebc7a19fd10": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/uploads/c8193b65-9f7c-41ce-a516-55c175efd502.txt",
+      "original_name": "test_document.txt",
+      "size": 116,
+      "upload_time": 1761684493.9417799,
       "type": "input"
     },
-    "b4c54b75-1e3e-4dec-92e6-8d091ae4b31a": {
-      "path": "/Users/bahaasalem/Desktop/DOCSWAP/output/test_upload-156f870b.pdf",
-      "original_name": "test_upload-156f870b.pdf",
-      "size": 1567,
-      "upload_time": 1761428958.2196622,
+    "b37b440b-d9ab-4d9d-84ce-33c7d6ead710": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/output/test_document-50dc4157.pdf",
+      "original_name": "test_document-50dc4157.pdf",
+      "size": 1507,
+      "upload_time": 1761684493.9643068,
       "type": "output"
     }
   }

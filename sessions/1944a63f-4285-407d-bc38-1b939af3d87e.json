@@ -1,0 +1,19 @@
+{
+  "created_at": 1761683035.8062851,
+  "files": {
+    "376e790a-1f58-47f0-9846-9f6f3a6bf272": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/uploads/0070a6ee-0e52-4ae8-beaf-3dc89b507103.txt",
+      "original_name": "test_pdf_content.txt",
+      "size": 371,
+      "upload_time": 1761683035.810171,
+      "type": "input"
+    },
+    "e8e7bfe1-1497-4369-9330-f6e611e2ca9a": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/output/test_pdf_content-62919146.pdf",
+      "original_name": "test_pdf_content-62919146.pdf",
+      "size": 1742,
+      "upload_time": 1761683042.616589,
+      "type": "output"
+    }
+  }
+}

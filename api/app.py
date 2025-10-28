@@ -224,6 +224,15 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 SESSIONS_FOLDER = '/tmp/sessions'
 os.makedirs(SESSIONS_FOLDER, exist_ok=True)
 
+# Ensure /tmp directories exist for Vercel serverless
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    os.makedirs(SESSIONS_FOLDER, exist_ok=True)
+    print(f"[STARTUP] Created directories: {UPLOAD_FOLDER}, {OUTPUT_FOLDER}, {SESSIONS_FOLDER}")
+except Exception as e:
+    print(f"[STARTUP ERROR] Failed to create directories: {e}")
+
 # Persistent session storage class
 class PersistentSessionStorage:
     def __init__(self, sessions_folder):
@@ -443,10 +452,45 @@ def create_compressed_response(file_path, mime_type, filename, force_download=Fa
 
 # Conversion functions
 def convert_pdf_to_docx(input_path, output_path):
-    converter = PDFToDocx(input_path)
-    converter.convert(output_path)
-    converter.close()
-    return output_path
+    """Convert PDF to DOCX using PyMuPDF and python-docx (Python-only, Vercel compatible)"""
+    try:
+        import fitz  # PyMuPDF
+        from docx import Document
+        from docx.shared import Inches
+        
+        # Open PDF document
+        pdf_doc = fitz.open(input_path)
+        
+        # Create new DOCX document
+        doc = Document()
+        
+        # Extract text from each page
+        for page_num in range(len(pdf_doc)):
+            page = pdf_doc.load_page(page_num)
+            text = page.get_text()
+            
+            # Add page content to DOCX
+            if text.strip():
+                # Add page break if not first page
+                if page_num > 0:
+                    doc.add_page_break()
+                
+                # Split text into paragraphs and add to document
+                paragraphs = text.split('\n\n')
+                for para in paragraphs:
+                    if para.strip():
+                        doc.add_paragraph(para.strip())
+        
+        # Close PDF document
+        pdf_doc.close()
+        
+        # Save DOCX document
+        doc.save(output_path)
+        return output_path
+        
+    except Exception as e:
+        print(f"[ERROR] PDF to DOCX conversion failed: {e}")
+        raise Exception(f"PDF to DOCX conversion failed: {str(e)}")
 
 def convert_pdf_to_image(input_path, output_path, format='jpg'):
     try:
@@ -585,9 +629,32 @@ def convert_image_to_image(input_path, output_path, output_format):
         raise
 
 def convert_docx_to_pdf(input_path, output_path):
-    """Convert DOCX to PDF with enhanced error handling"""
+    """Convert DOCX to PDF using python-docx and reportlab (Python-only for Vercel)"""
     try:
-        docx2pdf.convert(input_path, output_path)
+        from docx import Document
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        
+        # Read DOCX content
+        doc = Document(input_path)
+        
+        # Create PDF
+        pdf_doc = SimpleDocTemplate(output_path, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Add content from DOCX to PDF
+        for paragraph in doc.paragraphs:
+            if paragraph.text.strip():
+                # Create paragraph with proper styling
+                p = Paragraph(paragraph.text, styles['Normal'])
+                story.append(p)
+                story.append(Spacer(1, 0.2*inch))
+        
+        # Build PDF
+        pdf_doc.build(story)
         return output_path
     except Exception as e:
         print(f"Error in convert_docx_to_pdf: {str(e)}")

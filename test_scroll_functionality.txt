@@ -1,0 +1,8 @@
+This is a test file to verify that the scroll functionality works properly.
+
+When this file is selected, the page should automatically scroll down to the conversion options section where the user can:
+1. Select the output format from the dropdown
+2. Configure advanced options if needed
+3. Click the "Convert Now" button
+
+This ensures a smooth user experience by guiding the user to the next step in the conversion process.

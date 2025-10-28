@@ -1,0 +1,19 @@
+{
+  "created_at": 1761604883.1715379,
+  "files": {
+    "17128c32-eea1-417c-93db-2089c76ff448": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/uploads/8e2df9c3-2d8d-4866-a62c-4f0f9451fdd6.jpg",
+      "original_name": "02ed942afc22788dfabd76d4ce1ee5e9.jpg",
+      "size": 76515,
+      "upload_time": 1761604883.175921,
+      "type": "input"
+    },
+    "8318d879-4410-40d4-b0fb-e6a5641ddf5d": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/output/02ed942afc22788dfabd76d4ce1ee5e9-2bc4bc48.pdf",
+      "original_name": "02ed942afc22788dfabd76d4ce1ee5e9-2bc4bc48.pdf",
+      "size": 77937,
+      "upload_time": 1761604883.2408168,
+      "type": "output"
+    }
+  }
+}

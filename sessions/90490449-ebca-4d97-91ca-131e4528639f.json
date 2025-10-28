@@ -1,0 +1,19 @@
+{
+  "created_at": 1761611251.135968,
+  "files": {
+    "1bbee94e-1c91-4eea-b3ae-91a2a8f1c4bb": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/uploads/74e4d502-ea8d-4a1a-89f7-3f1378cf2d28.txt",
+      "original_name": "test.txt",
+      "size": 40,
+      "upload_time": 1761611251.144902,
+      "type": "input"
+    },
+    "a1bb5c7b-4811-4cd5-bca9-89539b3b029d": {
+      "path": "/Users/bahaasalem/Desktop/DOCSWAP/output/test-fc624f7a.pdf",
+      "original_name": "test-fc624f7a.pdf",
+      "size": 1443,
+      "upload_time": 1761611265.629483,
+      "type": "output"
+    }
+  }
+}
