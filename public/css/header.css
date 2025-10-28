@@ -1,0 +1,107 @@
+/* DocSwap - Header Layout Styles */
+
+/* Header container layout */
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-md);
+    position: relative;
+}
+
+/* Right-aligned navigation menu */
+.nav {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: var(--spacing-md);
+}
+
+.nav ul {
+    display: flex;
+    gap: var(--spacing-lg);
+    align-items: center;
+}
+
+/* User profile section */
+.auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Sign-in button container */
+
+
+/* User profile when logged in */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    position: relative;
+}
+
+/* User avatar styling */
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    border: 2px solid var(--primary-color);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.user-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    filter: brightness(1.1);
+}
+
+/* User email display */
+.user-email {
+    font-size: 14px;
+    color: var(--text-color);
+    font-weight: 500;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Sign out button */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+/* Language selector positioning */
+.language-selector {
+    margin-left: var(--spacing-md);
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .nav {
+        margin-left: 0;
+        margin-right: 0;
+        width: 100%;
+        margin-top: var(--spacing-md);
+        order: 3;
+        justify-content: center;
+    }
+    
+    .header .container {
+        flex-wrap: wrap;
+    }
+}

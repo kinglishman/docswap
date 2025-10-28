@@ -10,6 +10,39 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+// Find conversion file by ID
+function findConversionFile(conversionId) {
+  const sessionsDir = os.tmpdir();
+  
+  try {
+    const sessionFiles = fs.readdirSync(sessionsDir).filter(f => f.startsWith('session_') && f.endsWith('.json'));
+    
+    for (const sessionFile of sessionFiles) {
+      try {
+        const sessionPath = path.join(sessionsDir, sessionFile);
+        const sessionData = JSON.parse(fs.readFileSync(sessionPath, 'utf8'));
+        
+        for (const fileId in sessionData) {
+          const fileData = sessionData[fileId];
+          if (fileData.conversions) {
+            for (const convId in fileData.conversions) {
+              if (convId === conversionId) {
+                return fileData.conversions[convId];
+              }
+            }
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading sessions directory:', e);
+  }
+  
+  return null;
+}
+
 module.exports = async (req, res) => {
   // Set CORS headers
   Object.keys(corsHeaders).forEach(key => {
@@ -27,29 +60,39 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Extract file ID from query parameters
-    const { id: fileId } = req.query;
+    const { id } = req.query;
 
-    if (!fileId) {
-      return res.status(400).json({ error: 'File ID is required' });
+    if (!id) {
+      return res.status(400).json({ error: 'Missing conversion ID' });
     }
 
-    // For demo purposes, return a simple converted file
-    // In a real implementation, this would retrieve the actual converted file
-    const demoContent = `This is a demo converted file for file ID: ${fileId}
+    // Find the conversion file
+    const conversionData = findConversionFile(id);
+    if (!conversionData) {
+      return res.status(404).json({ error: 'File not found or expired' });
+    }
+
+    // Check if file exists
+    if (!fs.existsSync(conversionData.convertedFilePath)) {
+      return res.status(404).json({ error: 'Converted file not found' });
+    }
+
+    // Read the file
+    const fileContent = fs.readFileSync(conversionData.convertedFilePath);
     
-Original file has been processed and converted.
-Conversion completed at: ${new Date().toISOString()}
-
-This is a placeholder response. In a full implementation, this would be the actual converted file content.`;
-
-    // Set appropriate headers for file download
+    // Set appropriate headers for download
+    res.setHeader('Content-Disposition', `attachment; filename="${conversionData.convertedFileName}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="converted_${fileId}.txt"`);
-    res.status(200).send(demoContent);
+    res.setHeader('Content-Length', fileContent.length);
+
+    // Send the file
+    res.status(200).send(fileContent);
 
   } catch (error) {
     console.error('Download error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Download failed', 
+      details: error.message 
+    });
   }
 };
