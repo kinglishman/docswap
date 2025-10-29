@@ -1,5 +1,4 @@
-# Python files (not needed for Vercel Node.js deployment)
-*.py
+# Python development files (keep api/app.py for Vercel deployment)
 *.pyc
 __pycache__/
 *.pyo
@@ -22,6 +21,10 @@ coverage.xml
 .mypy_cache
 .pytest_cache
 .hypothesis
+
+# Ignore Python files except the API
+*.py
+!api/app.py
 
 # Development files
 .env
